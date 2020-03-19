@@ -1,7 +1,5 @@
-// import 'dart:io';
-
 import 'package:flutter_iconpicker/Serialization/iconDataSerialization.dart';
-// import 'package:flutter_iconpicker/flutter_iconpicker.dart';
+
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -132,13 +130,13 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
 
   Color pickerColor = Color(0xff000000);
   Color currentColor = Color(0xff000000);
-  static Widget _icon;
   IconData icon;
   List<Widget> iconList = [];
   List<String> avialableIconNameList = [];
   String searchText = '';
   TextEditingController searchController = TextEditingController();
   bool searching = false;
+  ValueNotifier valueNotifier = ValueNotifier('');
 
   final db = Firestore.instance;
 
@@ -209,7 +207,6 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
                     height: 25,
                     width: 45,
                     decoration: BoxDecoration(
-                      // border: Border.all(color: Colors.grey),
                       borderRadius: BorderRadius.circular(5),
                       color: pickerColor,
                     ),
@@ -242,10 +239,32 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(5),
                     ),
-                    child: _icon != null
-                        ? IconButton(
-                            icon: _icon,
-                            onPressed: myPickIcon,
+                    // child: _icon != null
+                    //     ? IconButton(
+                    //         icon: _icon,
+                    //         onPressed: myPickIcon,
+                    //       )
+                    //     : InkWell(
+                    //         highlightColor: Colors.transparent,
+                    //         splashColor: Colors.transparent,
+                    //         child: Container(
+                    //           child: Text("Choose Icon"),
+                    //         ),
+                    //         onTap: myPickIcon,
+                    //       ),
+                    child: valueNotifier.value != ''
+                        ? Container(
+                            child: ValueListenableBuilder(
+                              valueListenable: valueNotifier,
+                              builder: (context, value, child) {
+                                return IconButton(
+                                  icon: Icon(
+                                    MdiIcons.fromString(valueNotifier.value),
+                                  ),
+                                  onPressed: myPickIcon,
+                                );
+                              },
+                            ),
                           )
                         : InkWell(
                             highlightColor: Colors.transparent,
@@ -337,24 +356,24 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text("Pick an Icon!"),
-            content: MyIconDialogContent(_icon),
-            actions: <Widget>[
-              FlatButton(
-                child: Text("Cancel"),
-              ),
-              FlatButton(
-                child: Text("Save"),
-              ),
-            ],
+            content: MyIconDialogContent(valueNotifier),
+            // actions: <Widget>[
+            //   FlatButton(
+            //     child: Text("Cancel"),
+            //   ),
+            //   FlatButton(
+            //     child: Text("Save"),
+            //   ),
+            // ],
           );
         });
   }
 }
 
 class MyIconDialogContent extends StatefulWidget {
-  Widget displayIcon;
+  ValueNotifier valueNotifier;
 
-  MyIconDialogContent(this.displayIcon);
+  MyIconDialogContent(this.valueNotifier);
   @override
   _MyIconDialogContentState createState() => _MyIconDialogContentState();
 }
@@ -380,7 +399,9 @@ class _MyIconDialogContentState extends State<MyIconDialogContent> {
       iconList.add(InkResponse(
           onTap: () {
             print("Chose $key");
-            widget.displayIcon = Icon(MdiIcons.fromString(key));
+
+            widget.valueNotifier.value = key;
+            Navigator.pop(context);
           },
           child: Icon(
             MdiIcons.fromString(key),
@@ -454,7 +475,12 @@ class _MyIconDialogContentState extends State<MyIconDialogContent> {
         iconMap.forEach((String key, int val) {
           if (matchedList[i] == key) {
             matchedIconList.add(InkResponse(
-                onTap: () => print("Chose $key"),
+                onTap: () {
+                  print("Chose $key");
+
+                  widget.valueNotifier.value = key;
+                  Navigator.pop(context);
+                },
                 child: Icon(
                   MdiIcons.fromString(key),
                 )));
