@@ -10,11 +10,17 @@ void main() => runApp(MyApp());
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: TimeTrackerApp(),
-      routes: {
-        'root-page': (context) => RootPage(),
+    return GestureDetector(
+      onTap: () {
+        FocusScope.of(context).requestFocus(FocusNode());
       },
+      child: MaterialApp(
+        home: TimeTrackerApp(),
+        routes: {
+          'root-page': (context) => RootPage(),
+          'login-page': (context) => LoginPage(),
+        },
+      ),
     );
   }
 }

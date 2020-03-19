@@ -1,17 +1,21 @@
+import 'package:firebase_auth/firebase_auth.dart';
+
 class Task {
   String title;
   String colorHex;
-  Map iconMap;
+  String icon;
   String taskDescription;
+  String  userUid;
 
-  Task({this.title, this.colorHex, this.iconMap, this.taskDescription});
+  Task({this.title, this.colorHex, this.icon, this.taskDescription, this.userUid});
 
   factory Task.fromJson(Map<String, dynamic> map) {
     return Task(
       title: map['title'],
       colorHex: map['colorHex'],
-      iconMap: map['iconMap'],
+      icon: map['icon'],
       taskDescription: map['taskDescription'],
+      userUid: map['userUid'],
     );
   }
 
@@ -19,8 +23,9 @@ class Task {
     return {
       'title': title,
       'colorHex': colorHex,
-      'iconMap': iconMap,
+      'icon': icon,
       'taskDescription': taskDescription ?? '',
+      'userUid': userUid,
     };
   }
 }

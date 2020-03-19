@@ -1,10 +1,9 @@
-import 'package:flutter_iconpicker/Serialization/iconDataSerialization.dart';
-
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:material_design_icons_flutter/icon_map.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:time_tracker/sign_in.dart';
 
 import '../models/task.dart';
 
@@ -17,10 +16,12 @@ class FirstPage extends StatefulWidget {
 
 class _FirstPageState extends State<FirstPage> {
   String username = '';
+  String useruid;
   void initState() {
     FirebaseAuth.instance.currentUser().then((user) {
       setState(() {
         username = user.displayName;
+        useruid = user.uid;
       });
     });
     super.initState();
@@ -32,6 +33,18 @@ class _FirstPageState extends State<FirstPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Time Tracker"),
+        actions: <Widget>[
+          FlatButton(
+            child: Text("Sign out"),
+            onPressed: () {
+              signOutWithGoogle();
+              setState(() {
+                Navigator.pushNamedAndRemoveUntil(
+                    context, 'login-page', (_) => false);
+              });
+            },
+          ),
+        ],
       ),
       body: Container(
         margin: EdgeInsets.all(20),
@@ -83,15 +96,50 @@ class _FirstPageState extends State<FirstPage> {
             Expanded(
               child: ListView(
                 children: <Widget>[
-                  ListView.builder(
-                    physics: ScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: 5,
-                    itemBuilder: (BuildContext context, int index) {
-                      return ListTile(
-                        title: Text("item $index"),
-                      );
-                    },
+                  SingleChildScrollView(
+                    child: StreamBuilder<QuerySnapshot>(
+                      stream:
+                          Firestore.instance.collection('tasks').snapshots(),
+                      builder: (BuildContext context,
+                          AsyncSnapshot<QuerySnapshot> snapshot) {
+                        if (snapshot.hasError) {
+                          return Text("Error ${snapshot.error}");
+                        }
+                        switch (snapshot.connectionState) {
+                          case ConnectionState.waiting:
+                            return Text("Loading");
+                          default:
+                            return ListView(
+                              shrinkWrap: true,
+                              physics: ScrollPhysics(),
+                              children: snapshot.data.documents
+                                  .map((DocumentSnapshot document) {
+                                return document['userUid'] == useruid
+                                    ? Container(
+                                        height: 40,
+                                        child: Row(
+                                          children: <Widget>[
+                                            Icon(
+                                              MdiIcons.fromString(
+                                                document['icon'],
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  left: 10),
+                                              child: Text(
+                                                document['title'],
+                                              ),
+                                            )
+                                          ],
+                                        ),
+                                      )
+                                    : Container();
+                              }).toList(),
+                            );
+                        }
+                      },
+                    ),
                   ),
                   Center(
                     child: SizedBox(
@@ -139,6 +187,7 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
   ValueNotifier valueNotifier = ValueNotifier('');
 
   final db = Firestore.instance;
+  FirebaseUser user;
 
   @override
   void initState() {
@@ -270,7 +319,7 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
                 controller: descriptionController,
                 maxLines: 8,
                 decoration: InputDecoration(
-                  hintText: 'task description',
+                  hintText: 'task description (optional)',
                 ),
               ),
             ),
@@ -287,7 +336,16 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
                 FlatButton(
                   child: Text("Save"),
                   onPressed: () {
-                    createTask();
+                    FocusScope.of(context).requestFocus(FocusNode());
+                    if (titleController.text == '' ||
+                        currentColor.toString() == null ||
+                        valueNotifier.value == '') {
+                      notCompletedWarning();
+                      print("Not completed");
+                    } else {
+                      createTask();
+                      Navigator.pop(context);
+                    }
                   },
                 ),
               ],
@@ -299,10 +357,30 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
   }
 
   void createTask() async {
+    final FirebaseUser user = await FirebaseAuth.instance.currentUser();
     Task newTask = Task(
       title: titleController.text,
       colorHex: currentColor.toString(),
+      icon: valueNotifier.value,
       taskDescription: descriptionController.text ?? '',
+      userUid: user.uid,
+    );
+    DocumentReference ref = await db.collection('tasks').add(newTask.toJson());
+    print(ref.documentID);
+  }
+
+  Future notCompletedWarning() async {
+    return showDialog(
+      context: context,
+      child: AlertDialog(
+        title: Text("Please fill in the data"),
+        actions: <Widget>[
+          FlatButton(
+            child: Text("Got it!"),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
     );
   }
 
@@ -379,7 +457,7 @@ class _MyIconDialogContentState extends State<MyIconDialogContent> {
             setState(() {
               widget.valueNotifier.value = key;
             });
-
+            FocusScope.of(context).requestFocus(FocusNode());
             Navigator.pop(context);
           },
           child: Icon(
@@ -426,7 +504,7 @@ class _MyIconDialogContentState extends State<MyIconDialogContent> {
               ? Container(
                   child: SingleChildScrollView(
                       child: Container(
-                  height: MediaQuery.of(context).size.height * 0.35,
+                  height: MediaQuery.of(context).size.height * 0.3,
                   width: 300,
                   child: GridView.count(
                     crossAxisCount: 5,
