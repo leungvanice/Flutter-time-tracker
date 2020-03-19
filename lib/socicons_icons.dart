@@ -20,6 +20,8 @@
 import 'package:flutter/widgets.dart';
 
 class Socicons {
+  
+
   Socicons._();
 
   static const _kFontFam = 'Socicons';

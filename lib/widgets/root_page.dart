@@ -1,3 +1,4 @@
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:time_tracker/socicons_icons.dart';
 
 import './first_page.dart';
@@ -24,9 +25,11 @@ class _RootPageState extends State<RootPage> {
             ),
             Container(
               color: Colors.lightGreen,
+              child: Icon(Socicons.snapchat),
             ),
             Container(
               color: Colors.red,
+               child: Icon(MdiIcons.snapchat),
             ),
           ],
         ),

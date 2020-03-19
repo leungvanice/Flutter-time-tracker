@@ -5,10 +5,14 @@ import 'package:flutter_iconpicker/flutter_iconpicker.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:material_design_icons_flutter/icon_map.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 import '../models/task.dart';
 
 import 'package:flutter/material.dart';
+
+import '../socicons_icons.dart';
 
 class FirstPage extends StatefulWidget {
   @override
@@ -132,8 +136,15 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
   Color currentColor = Color(0xff000000);
   Widget _icon;
   IconData icon;
-  File _image;
+  List<Widget> iconList = [];
+
   final db = Firestore.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _buildIcons();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -203,7 +214,7 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
                     ),
                     child: FlatButton(
                       child: Container(),
-                      onPressed: pickColor,
+                      onPressed: myPickIcon,
                     ),
                   ),
                 ],
@@ -343,7 +354,47 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
         _icon = null;
       }
     });
+  }
 
-    debugPrint('Picked Icon:  $icon');
+  _buildIcons() async {
+    iconMap.forEach((String key, int val) async {
+      iconList.add(InkResponse(
+          onTap: () => print("Chose $key"),
+          child: Icon(
+            MdiIcons.fromString(key),
+          )));
+    });
+  }
+
+  myPickIcon() async {
+    return showDialog(
+      context: context,
+      child: AlertDialog(
+        title: Text("Pick an Icon!"),
+        content: Container(
+          height: 300,
+          width: 200,
+          child: Column(
+            children: <Widget>[
+              Container(
+                child: Text("Search bar"),
+              ),
+              Container(
+                child: SingleChildScrollView(
+                  child: Container(
+                    height: 200,
+                    width: 200,
+                    child: GridView.count(
+                      crossAxisCount: 5,
+                      children: iconList,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
