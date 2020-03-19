@@ -21,15 +21,12 @@ class _RootPageState extends State<RootPage> {
             FirstPage(),
             Container(
               color: Colors.orange,
-              child: Icon(Socicons.youtube),
             ),
             Container(
               color: Colors.lightGreen,
-              child: Icon(Socicons.snapchat),
             ),
             Container(
               color: Colors.red,
-               child: Icon(MdiIcons.snapchat),
             ),
           ],
         ),

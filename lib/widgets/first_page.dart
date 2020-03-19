@@ -130,7 +130,7 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
 
   Color pickerColor = Color(0xff000000);
   Color currentColor = Color(0xff000000);
-  IconData icon;
+
   List<Widget> iconList = [];
   List<String> avialableIconNameList = [];
   String searchText = '';
@@ -236,45 +236,31 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
                     ),
                   ),
                   Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    // child: _icon != null
-                    //     ? IconButton(
-                    //         icon: _icon,
-                    //         onPressed: myPickIcon,
-                    //       )
-                    //     : InkWell(
-                    //         highlightColor: Colors.transparent,
-                    //         splashColor: Colors.transparent,
-                    //         child: Container(
-                    //           child: Text("Choose Icon"),
-                    //         ),
-                    //         onTap: myPickIcon,
-                    //       ),
-                    child: valueNotifier.value != ''
-                        ? Container(
-                            child: ValueListenableBuilder(
-                              valueListenable: valueNotifier,
-                              builder: (context, value, child) {
-                                return IconButton(
-                                  icon: Icon(
-                                    MdiIcons.fromString(valueNotifier.value),
-                                  ),
-                                  onPressed: myPickIcon,
-                                );
-                              },
-                            ),
-                          )
-                        : InkWell(
-                            highlightColor: Colors.transparent,
-                            splashColor: Colors.transparent,
-                            child: Container(
-                              child: Text("Choose Icon"),
-                            ),
-                            onTap: myPickIcon,
-                          ),
-                  ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Container(
+                        child: ValueListenableBuilder(
+                          valueListenable: valueNotifier,
+                          builder: (context, value, child) {
+                            return valueNotifier.value != ''
+                                ? IconButton(
+                                    icon: Icon(
+                                      MdiIcons.fromString(valueNotifier.value),
+                                    ),
+                                    onPressed: myPickIcon,
+                                  )
+                                : InkWell(
+                                    highlightColor: Colors.transparent,
+                                    splashColor: Colors.transparent,
+                                    child: Container(
+                                      child: Text("Choose Icon"),
+                                    ),
+                                    onTap: myPickIcon,
+                                  );
+                          },
+                        ),
+                      )),
                 ],
               ),
             ),
@@ -316,7 +302,6 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
     Task newTask = Task(
       title: titleController.text,
       colorHex: currentColor.toString(),
-      iconMap: iconDataToMap(icon),
       taskDescription: descriptionController.text ?? '',
     );
   }
@@ -357,14 +342,6 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
           return AlertDialog(
             title: Text("Pick an Icon!"),
             content: MyIconDialogContent(valueNotifier),
-            // actions: <Widget>[
-            //   FlatButton(
-            //     child: Text("Cancel"),
-            //   ),
-            //   FlatButton(
-            //     child: Text("Save"),
-            //   ),
-            // ],
           );
         });
   }
@@ -399,8 +376,10 @@ class _MyIconDialogContentState extends State<MyIconDialogContent> {
       iconList.add(InkResponse(
           onTap: () {
             print("Chose $key");
+            setState(() {
+              widget.valueNotifier.value = key;
+            });
 
-            widget.valueNotifier.value = key;
             Navigator.pop(context);
           },
           child: Icon(
@@ -447,7 +426,7 @@ class _MyIconDialogContentState extends State<MyIconDialogContent> {
               ? Container(
                   child: SingleChildScrollView(
                       child: Container(
-                  height: MediaQuery.of(context).size.height * 0.3,
+                  height: MediaQuery.of(context).size.height * 0.35,
                   width: 300,
                   child: GridView.count(
                     crossAxisCount: 5,
