@@ -1,7 +1,7 @@
-import 'dart:io';
+// import 'dart:io';
 
 import 'package:flutter_iconpicker/Serialization/iconDataSerialization.dart';
-import 'package:flutter_iconpicker/flutter_iconpicker.dart';
+// import 'package:flutter_iconpicker/flutter_iconpicker.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -11,8 +11,6 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import '../models/task.dart';
 
 import 'package:flutter/material.dart';
-
-import '../socicons_icons.dart';
 
 class FirstPage extends StatefulWidget {
   @override
@@ -134,16 +132,19 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
 
   Color pickerColor = Color(0xff000000);
   Color currentColor = Color(0xff000000);
-  Widget _icon;
+  static Widget _icon;
   IconData icon;
   List<Widget> iconList = [];
+  List<String> avialableIconNameList = [];
+  String searchText = '';
+  TextEditingController searchController = TextEditingController();
+  bool searching = false;
 
   final db = Firestore.instance;
 
   @override
   void initState() {
     super.initState();
-    _buildIcons();
   }
 
   @override
@@ -214,7 +215,7 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
                     ),
                     child: FlatButton(
                       child: Container(),
-                      onPressed: myPickIcon,
+                      onPressed: pickColor,
                     ),
                   ),
                 ],
@@ -244,7 +245,7 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
                     child: _icon != null
                         ? IconButton(
                             icon: _icon,
-                            onPressed: pickIcon,
+                            onPressed: myPickIcon,
                           )
                         : InkWell(
                             highlightColor: Colors.transparent,
@@ -252,7 +253,7 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
                             child: Container(
                               child: Text("Choose Icon"),
                             ),
-                            onTap: pickIcon,
+                            onTap: myPickIcon,
                           ),
                   ),
                 ],
@@ -299,9 +300,6 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
       iconMap: iconDataToMap(icon),
       taskDescription: descriptionController.text ?? '',
     );
-    print(newTask.colorHex);
-    print(newTask.iconMap);
-    print(newTask.taskDescription);
   }
 
   void changeColor(Color color) {
@@ -333,68 +331,149 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
     );
   }
 
-  pickIcon() async {
-    icon = await FlutterIconPicker.showIconPicker(context,
-        iconSize: 40,
-        iconPickerShape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title:
-            Text('Pick an icon', style: TextStyle(fontWeight: FontWeight.bold)),
-        closeChild: Text(
-          'Close',
-          textScaleFactor: 1.25,
-        ),
-        searchHintText: 'Search icon...',
-        noResultsText: 'No results for:');
+  myPickIcon() async {
+    return showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("Pick an Icon!"),
+            content: MyIconDialogContent(_icon),
+            actions: <Widget>[
+              FlatButton(
+                child: Text("Cancel"),
+              ),
+              FlatButton(
+                child: Text("Save"),
+              ),
+            ],
+          );
+        });
+  }
+}
 
-    setState(() {
-      if (icon != null) {
-        _icon = Icon(icon);
-      } else {
-        _icon = null;
-      }
+class MyIconDialogContent extends StatefulWidget {
+  Widget displayIcon;
+
+  MyIconDialogContent(this.displayIcon);
+  @override
+  _MyIconDialogContentState createState() => _MyIconDialogContentState();
+}
+
+class _MyIconDialogContentState extends State<MyIconDialogContent> {
+  List<Widget> iconList = [];
+  List<String> avialableIconNameList = [];
+  String searchText = '';
+  TextEditingController searchController = TextEditingController();
+  bool searching = false;
+  @override
+  void initState() {
+    super.initState();
+    _buildIcons();
+    // add every icon's name in this list
+    iconMap.forEach((String key, int val) {
+      avialableIconNameList.add(key);
     });
   }
 
   _buildIcons() async {
     iconMap.forEach((String key, int val) async {
       iconList.add(InkResponse(
-          onTap: () => print("Chose $key"),
+          onTap: () {
+            print("Chose $key");
+            widget.displayIcon = Icon(MdiIcons.fromString(key));
+          },
           child: Icon(
             MdiIcons.fromString(key),
           )));
     });
   }
 
-  myPickIcon() async {
-    return showDialog(
-      context: context,
-      child: AlertDialog(
-        title: Text("Pick an Icon!"),
-        content: Container(
-          height: 300,
-          width: 200,
-          child: Column(
-            children: <Widget>[
-              Container(
-                child: Text("Search bar"),
-              ),
-              Container(
-                child: SingleChildScrollView(
-                  child: Container(
-                    height: 200,
-                    width: 200,
-                    child: GridView.count(
-                      crossAxisCount: 5,
-                      children: iconList,
-                    ),
-                  ),
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.5,
+      width: 300,
+      child: Column(
+        children: <Widget>[
+          // Search bar
+          Container(
+            height: 35,
+            width: 300,
+            child: TextField(
+              controller: searchController,
+              onChanged: (val) {
+                searchText = val;
+                setState(() {
+                  if (searchController.text.isEmpty) {
+                    searching = false;
+                  } else {
+                    searching = true;
+                  }
+                });
+              },
+              decoration: InputDecoration(
+                hintText: 'Search icon...',
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.search),
+                  onPressed: () {
+                    print("Pressed");
+                  },
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+          searching == false
+              ? Container(
+                  child: SingleChildScrollView(
+                      child: Container(
+                  height: MediaQuery.of(context).size.height * 0.3,
+                  width: 300,
+                  child: GridView.count(
+                    crossAxisCount: 5,
+                    children: iconList,
+                  ),
+                )))
+              : searchingContainer(),
+        ],
       ),
     );
+  }
+
+  Widget searchingContainer() {
+    List matchedList = [];
+    List<Widget> matchedIconList = [];
+    for (int i = 0; i < avialableIconNameList.length; i++) {
+      if (avialableIconNameList[i]
+          .toLowerCase()
+          .contains(searchText.toLowerCase())) {
+        matchedList.add(avialableIconNameList[i]);
+      }
+    }
+    if (matchedList != []) {
+      for (int i = 0; i < matchedList.length; i++) {
+        iconMap.forEach((String key, int val) {
+          if (matchedList[i] == key) {
+            matchedIconList.add(InkResponse(
+                onTap: () => print("Chose $key"),
+                child: Icon(
+                  MdiIcons.fromString(key),
+                )));
+          }
+        });
+      }
+      return Container(
+          child: SingleChildScrollView(
+              child: Container(
+        height: MediaQuery.of(context).size.height * 0.3,
+        width: 300,
+        child: GridView.count(
+          crossAxisCount: 5,
+          children: matchedIconList,
+        ),
+      )));
+    } else {
+      print("No match");
+      return Text("There isn't match icon");
+    }
   }
 }
