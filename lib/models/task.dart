@@ -1,13 +1,16 @@
-import 'package:firebase_auth/firebase_auth.dart';
-
 class Task {
   String title;
   String colorHex;
   String icon;
   String taskDescription;
-  String  userUid;
+  String userUid;
 
-  Task({this.title, this.colorHex, this.icon, this.taskDescription, this.userUid});
+  Task(
+      {this.title,
+      this.colorHex,
+      this.icon,
+      this.taskDescription,
+      this.userUid});
 
   factory Task.fromJson(Map<String, dynamic> map) {
     return Task(

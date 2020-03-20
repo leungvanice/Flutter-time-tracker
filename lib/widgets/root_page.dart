@@ -1,6 +1,3 @@
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:time_tracker/socicons_icons.dart';
-
 import './first_page.dart';
 
 import 'package:flutter/material.dart';

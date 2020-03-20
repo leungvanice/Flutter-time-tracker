@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,8 +9,19 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'package:time_tracker/sign_in.dart';
 
 import '../models/task.dart';
+import '../models/taskEntry.dart';
 
 import 'package:flutter/material.dart';
+
+class MyStopwatch {
+  static Stopwatch stopwatch = Stopwatch();
+  static ValueNotifier stopwatchValueNotifier = ValueNotifier('00:00:00');
+  static ValueNotifier stopwatchStarted = ValueNotifier('false');
+  static ValueNotifier stopwatchRunningNotifier = ValueNotifier('false');
+  static formatDuration(Duration d) {
+    return d.toString().split('.').first.padLeft(8, '0');
+  }
+}
 
 class FirstPage extends StatefulWidget {
   @override
@@ -17,6 +31,8 @@ class FirstPage extends StatefulWidget {
 class _FirstPageState extends State<FirstPage> {
   String username = '';
   String useruid;
+  final db = Firestore.instance;
+
   void initState() {
     FirebaseAuth.instance.currentUser().then((user) {
       setState(() {
@@ -29,7 +45,6 @@ class _FirstPageState extends State<FirstPage> {
 
   @override
   Widget build(BuildContext context) {
-    final mediaquery = MediaQuery.of(context).size;
     return Scaffold(
       appBar: AppBar(
         title: Text("Time Tracker"),
@@ -50,52 +65,23 @@ class _FirstPageState extends State<FirstPage> {
         margin: EdgeInsets.all(20),
         child: Column(
           children: <Widget>[
-            Card(
-              child: Container(
-                height: mediaquery.height * 0.2,
-                padding: EdgeInsets.all(20),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: <Widget>[
-                    Text(
-                      "Reading",
-                      style: TextStyle(fontSize: 25),
-                    ),
-                    Text(
-                      "00:00:00",
-                      style: TextStyle(fontSize: 20),
-                    ),
-                    Container(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          IconButton(
-                            icon: Icon(Icons.play_arrow),
-                            onPressed: () {},
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.pause,
-                            ),
-                            onPressed: () {},
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.stop),
-                            onPressed: () {},
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            // Card
+            ValueListenableBuilder(
+                valueListenable: MyStopwatch.stopwatchStarted,
+                builder: (context, value, child) {
+                  return MyStopwatch.stopwatchStarted.value == 'false'
+                      ? NoTaskRunningCard()
+                      : CurrentCard();
+                }),
             SizedBox(
+              // space
               height: 30,
             ),
+            // main content
             Expanded(
               child: ListView(
                 children: <Widget>[
+                  // task list
                   SingleChildScrollView(
                     child: StreamBuilder<QuerySnapshot>(
                       stream:
@@ -115,23 +101,27 @@ class _FirstPageState extends State<FirstPage> {
                               children: snapshot.data.documents
                                   .map((DocumentSnapshot document) {
                                 return document['userUid'] == useruid
-                                    ? Container(
-                                        height: 40,
-                                        child: Row(
-                                          children: <Widget>[
-                                            Icon(
-                                              MdiIcons.fromString(
-                                                document['icon'],
+                                    ? InkWell(
+                                        onTap: () =>
+                                            startTask(document.documentID),
+                                        child: Container(
+                                          height: 40,
+                                          child: Row(
+                                            children: <Widget>[
+                                              Icon(
+                                                MdiIcons.fromString(
+                                                  document['icon'],
+                                                ),
                                               ),
-                                            ),
-                                            Padding(
-                                              padding: const EdgeInsets.only(
-                                                  left: 10),
-                                              child: Text(
-                                                document['title'],
-                                              ),
-                                            )
-                                          ],
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    left: 10),
+                                                child: Text(
+                                                  document['title'],
+                                                ),
+                                              )
+                                            ],
+                                          ),
                                         ),
                                       )
                                     : Container();
@@ -141,6 +131,7 @@ class _FirstPageState extends State<FirstPage> {
                       },
                     ),
                   ),
+                  // Create task button
                   Center(
                     child: SizedBox(
                       height: 30,
@@ -159,6 +150,114 @@ class _FirstPageState extends State<FirstPage> {
                   ),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void startTask(String belongedTaskDocumentId) {
+    MyStopwatch.stopwatch.start();
+
+    MyStopwatch.stopwatchRunningNotifier.value = 'true';
+
+    if (MyStopwatch.stopwatchRunningNotifier.value == 'true') {
+      Timer.periodic(Duration(seconds: 1), (callback) {
+        MyStopwatch.stopwatchValueNotifier.value = MyStopwatch.formatDuration(
+          Duration(milliseconds: MyStopwatch.stopwatch.elapsedMilliseconds),
+        );
+      });
+    }
+    if (MyStopwatch.stopwatchStarted.value == 'false') {
+      TaskEntry.newTaskEntry.startTime = DateTime.now();
+      TaskEntry.newTaskEntry.belongedTask = belongedTaskDocumentId;
+      TaskEntry.newTaskEntry.id = DateTime.now().toIso8601String();
+    }
+    MyStopwatch.stopwatchStarted.value = 'true';
+  }
+}
+
+class CurrentCard extends StatefulWidget {
+  @override
+  _CurrentCardState createState() => _CurrentCardState();
+}
+
+class _CurrentCardState extends State<CurrentCard> {
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.2,
+        padding: EdgeInsets.all(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: <Widget>[
+            // current task text
+            Text(
+              "Reading",
+              style: TextStyle(fontSize: 25),
+            ),
+            // stopwatch text
+            ValueListenableBuilder(
+                valueListenable: MyStopwatch.stopwatchValueNotifier,
+                builder: (context, value, child) {
+                  return Text(
+                    MyStopwatch.stopwatchValueNotifier.value,
+                    style: TextStyle(fontSize: 20),
+                  );
+                }),
+            // actions buttons
+            Center(
+              child: IconButton(
+                icon: Icon(Icons.stop),
+                onPressed: resetButtonFunction,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  resetButtonFunction() {
+    MyStopwatch.stopwatch.stop();
+    // reset stopwatch
+    MyStopwatch.stopwatch.reset();
+    MyStopwatch.stopwatchStarted.value =
+        'false'; // currentCard() > noTaskRunningCard()
+    MyStopwatch.stopwatchValueNotifier.value = '00:00:00';
+    MyStopwatch.stopwatchRunningNotifier.value = 'false';
+    // handle data
+    TaskEntry.newTaskEntry.endTime = DateTime.now();
+    TaskEntry.newTaskEntry.duration =
+        Duration(milliseconds: MyStopwatch.stopwatch.elapsedMilliseconds);
+
+    print(TaskEntry.newTaskEntry.belongedTask);
+    TaskEntry.saveToFirestore();
+    // clear newTaskEntry data
+    TaskEntry.newTaskEntry.startTime = null;
+  }
+}
+
+class NoTaskRunningCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.2,
+        padding: EdgeInsets.all(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  "No task running",
+                  style: TextStyle(fontSize: 25),
+                ),
+              ],
             ),
           ],
         ),
@@ -426,7 +525,7 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
 }
 
 class MyIconDialogContent extends StatefulWidget {
-  ValueNotifier valueNotifier;
+  final ValueNotifier valueNotifier;
 
   MyIconDialogContent(this.valueNotifier);
   @override
