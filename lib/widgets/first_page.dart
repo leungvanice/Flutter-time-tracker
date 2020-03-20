@@ -13,6 +13,8 @@ import '../models/taskEntry.dart';
 
 import 'package:flutter/material.dart';
 
+ValueNotifier runningTaskNotifier = ValueNotifier('');
+
 class MyStopwatch {
   static Stopwatch stopwatch = Stopwatch();
   static ValueNotifier stopwatchValueNotifier = ValueNotifier('00:00:00');
@@ -102,8 +104,9 @@ class _FirstPageState extends State<FirstPage> {
                                   .map((DocumentSnapshot document) {
                                 return document['userUid'] == useruid
                                     ? InkWell(
-                                        onTap: () =>
-                                            startTask(document.documentID),
+                                        onTap: () => startTask(
+                                            document.documentID,
+                                            document['title']),
                                         child: Container(
                                           height: 40,
                                           child: Row(
@@ -157,7 +160,7 @@ class _FirstPageState extends State<FirstPage> {
     );
   }
 
-  void startTask(String belongedTaskDocumentId) {
+  void startTask(String belongedTaskDocumentId, String runningTask) {
     MyStopwatch.stopwatch.start();
 
     MyStopwatch.stopwatchRunningNotifier.value = 'true';
@@ -170,6 +173,7 @@ class _FirstPageState extends State<FirstPage> {
       });
     }
     if (MyStopwatch.stopwatchStarted.value == 'false') {
+      runningTaskNotifier.value = runningTask;
       TaskEntry.newTaskEntry.startTime = DateTime.now();
       TaskEntry.newTaskEntry.belongedTask = belongedTaskDocumentId;
       TaskEntry.newTaskEntry.id = DateTime.now().toIso8601String();
@@ -193,12 +197,16 @@ class _CurrentCardState extends State<CurrentCard> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: <Widget>[
-            // current task text
-            Text(
-              "Reading",
-              style: TextStyle(fontSize: 25),
+            ValueListenableBuilder(
+              valueListenable: runningTaskNotifier,
+              builder: (context, value, child) {
+                return Text(
+                  value,
+                  style: TextStyle(fontSize: 25),
+                );
+              },
             ),
-            // stopwatch text
+            // elapsed time text 
             ValueListenableBuilder(
                 valueListenable: MyStopwatch.stopwatchValueNotifier,
                 builder: (context, value, child) {
