@@ -87,9 +87,8 @@ class _FirstPageState extends State<FirstPage> {
                   SingleChildScrollView(
                     child: StreamBuilder<QuerySnapshot>(
                       stream: Firestore.instance
-                          .collection('users')
-                          .document(useruid)
-                          .collection('tasks')
+                          .collection('users/$useruid/tasks')
+                          .orderBy('title')
                           .snapshots(),
                       builder: (BuildContext context,
                           AsyncSnapshot<QuerySnapshot> snapshot) {
@@ -105,28 +104,60 @@ class _FirstPageState extends State<FirstPage> {
                               physics: ScrollPhysics(),
                               children: snapshot.data.documents
                                   .map((DocumentSnapshot document) {
-                                return InkWell(
-                                  onTap: () {
-                                    Task task = Task.fromJson(document);
-                                    startTask(document.documentID, task);
+                                return Dismissible(
+                                  key: Key(document.documentID),
+                                  direction: DismissDirection.endToStart,
+                                  onDismissed: (direction) async {
+                                    QuerySnapshot snapshot = await Firestore
+                                        .instance
+                                        .collection(
+                                            'users/$useruid/taskEntries')
+                                        .where('belongedTaskId',
+                                            isEqualTo: document.documentID)
+                                        .getDocuments();
+                                    var documents = snapshot.documents;
+                                    // remove the task entries
+                                    for (int i = 0; i < documents.length; i++) {
+                                      Firestore.instance
+                                          .collection(
+                                              'users/$useruid/taskEntries')
+                                          .document(documents[i].documentID)
+                                          .delete();
+                                    }
+                                    // remove the task
+                                    await Firestore.instance
+                                        .collection('users/$useruid/tasks')
+                                        .document(document.documentID)
+                                        .delete();
                                   },
-                                  child: Container(
-                                    height: 40,
-                                    child: Row(
-                                      children: <Widget>[
-                                        Icon(
-                                          MdiIcons.fromString(
-                                            document['icon'],
+                                  background: Container(
+                                    alignment: Alignment.centerRight,
+                                    color: Colors.red,
+                                    child: Icon(Icons.delete),
+                                  ),
+                                  child: InkWell(
+                                    onTap: () {
+                                      Task task = Task.fromJson(document);
+                                      startTask(document.documentID, task);
+                                    },
+                                    child: Container(
+                                      height: 40,
+                                      child: Row(
+                                        children: <Widget>[
+                                          Icon(
+                                            MdiIcons.fromString(
+                                              document['icon'],
+                                            ),
                                           ),
-                                        ),
-                                        Padding(
-                                          padding:
-                                              const EdgeInsets.only(left: 10),
-                                          child: Text(
-                                            document['title'],
-                                          ),
-                                        )
-                                      ],
+                                          Padding(
+                                            padding:
+                                                const EdgeInsets.only(left: 10),
+                                            child: Text(
+                                              document['title'],
+                                            ),
+                                          )
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 );

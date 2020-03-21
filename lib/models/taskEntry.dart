@@ -47,6 +47,7 @@ class TaskEntry {
         .document(newTaskEntry.belongedTaskId)
         .collection('taskEntries')
         .add(newTaskEntry.toJson());
+
     DocumentReference reference = await db
         .collection('users')
         .document(uid)
