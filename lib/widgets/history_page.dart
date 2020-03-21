@@ -17,6 +17,7 @@ class _HistoryPageState extends State<HistoryPage> {
   DateTime toDate;
   int yMMdFromDate;
   int yMMdToDate;
+  List documents;
 
   getUser() {
     FirebaseAuth.instance.currentUser().then((user) {
@@ -40,14 +41,6 @@ class _HistoryPageState extends State<HistoryPage> {
     super.initState();
     setDate();
     getUser();
-  }
-
-  _save(int newVal) async {
-    final prefs = await SharedPreferences.getInstance();
-    final key = 'queryRange';
-    final value = newVal;
-    prefs.setInt(key, value);
-    print('saved $value');
   }
 
   @override
@@ -179,7 +172,13 @@ class _HistoryPageState extends State<HistoryPage> {
                                       ],
                                     ),
                                   )
-                                : Container();
+                                : noTaskEntry(
+                                    document.documentID,
+                                    snapshot
+                                        .data
+                                        .documents[
+                                            snapshot.data.documents.length - 1]
+                                        .documentID);
                           },
                         ).toList(),
                       );
@@ -191,6 +190,25 @@ class _HistoryPageState extends State<HistoryPage> {
         ],
       ),
     );
+  }
+
+  Widget noTaskEntry(String documentId, String lastDocumentId) {
+    List<Widget> list = [];
+    if (documentId == lastDocumentId) {
+      list.add(Container(
+        child: Text("No task in the selected period"),
+      ));
+      return list[0];
+    }
+    return Container();
+  }
+
+  _save(int newVal) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'queryRange';
+    final value = newVal;
+    prefs.setInt(key, value);
+    print('saved $value');
   }
 
   Future selectDate(String leftOrRight) async {
