@@ -20,7 +20,7 @@ class MyStopwatch {
   static ValueNotifier stopwatchValueNotifier = ValueNotifier('00:00:00');
   static ValueNotifier stopwatchStarted = ValueNotifier('false');
   static ValueNotifier stopwatchRunningNotifier = ValueNotifier('false');
-  static formatDuration(Duration d) {
+  static String formatDuration(Duration d) {
     return d.toString().split('.').first.padLeft(8, '0');
   }
 }
@@ -86,8 +86,11 @@ class _FirstPageState extends State<FirstPage> {
                   // task list
                   SingleChildScrollView(
                     child: StreamBuilder<QuerySnapshot>(
-                      stream:
-                          Firestore.instance.collection('tasks').snapshots(),
+                      stream: Firestore.instance
+                          .collection('users')
+                          .document(useruid)
+                          .collection('tasks')
+                          .snapshots(),
                       builder: (BuildContext context,
                           AsyncSnapshot<QuerySnapshot> snapshot) {
                         if (snapshot.hasError) {
@@ -102,32 +105,31 @@ class _FirstPageState extends State<FirstPage> {
                               physics: ScrollPhysics(),
                               children: snapshot.data.documents
                                   .map((DocumentSnapshot document) {
-                                return document['userUid'] == useruid
-                                    ? InkWell(
-                                        onTap: () => startTask(
-                                            document.documentID,
-                                            document['title']),
-                                        child: Container(
-                                          height: 40,
-                                          child: Row(
-                                            children: <Widget>[
-                                              Icon(
-                                                MdiIcons.fromString(
-                                                  document['icon'],
-                                                ),
-                                              ),
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    left: 10),
-                                                child: Text(
-                                                  document['title'],
-                                                ),
-                                              )
-                                            ],
+                                return InkWell(
+                                  onTap: () {
+                                    Task task = Task.fromJson(document);
+                                    startTask(document.documentID, task);
+                                  },
+                                  child: Container(
+                                    height: 40,
+                                    child: Row(
+                                      children: <Widget>[
+                                        Icon(
+                                          MdiIcons.fromString(
+                                            document['icon'],
                                           ),
                                         ),
-                                      )
-                                    : Container();
+                                        Padding(
+                                          padding:
+                                              const EdgeInsets.only(left: 10),
+                                          child: Text(
+                                            document['title'],
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                  ),
+                                );
                               }).toList(),
                             );
                         }
@@ -160,7 +162,7 @@ class _FirstPageState extends State<FirstPage> {
     );
   }
 
-  void startTask(String belongedTaskDocumentId, String runningTask) {
+  void startTask(String belongedTaskDocumentId, Task task) {
     MyStopwatch.stopwatch.start();
 
     MyStopwatch.stopwatchRunningNotifier.value = 'true';
@@ -173,10 +175,12 @@ class _FirstPageState extends State<FirstPage> {
       });
     }
     if (MyStopwatch.stopwatchStarted.value == 'false') {
-      runningTaskNotifier.value = runningTask;
+      runningTaskNotifier.value = task.title;
       TaskEntry.newTaskEntry.startTime = DateTime.now();
-      TaskEntry.newTaskEntry.belongedTask = belongedTaskDocumentId;
+      TaskEntry.newTaskEntry.belongedTaskId = belongedTaskDocumentId;
+      TaskEntry.newTaskEntry.belongedTask = task;
       TaskEntry.newTaskEntry.id = DateTime.now().toIso8601String();
+      print(TaskEntry.newTaskEntry.startTime);
     }
     MyStopwatch.stopwatchStarted.value = 'true';
   }
@@ -206,7 +210,7 @@ class _CurrentCardState extends State<CurrentCard> {
                 );
               },
             ),
-            // elapsed time text 
+            // elapsed time text
             ValueListenableBuilder(
                 valueListenable: MyStopwatch.stopwatchValueNotifier,
                 builder: (context, value, child) {
@@ -234,17 +238,14 @@ class _CurrentCardState extends State<CurrentCard> {
     MyStopwatch.stopwatch.reset();
     MyStopwatch.stopwatchStarted.value =
         'false'; // currentCard() > noTaskRunningCard()
-    MyStopwatch.stopwatchValueNotifier.value = '00:00:00';
-    MyStopwatch.stopwatchRunningNotifier.value = 'false';
+
     // handle data
     TaskEntry.newTaskEntry.endTime = DateTime.now();
-    TaskEntry.newTaskEntry.duration =
-        Duration(milliseconds: MyStopwatch.stopwatch.elapsedMilliseconds);
-
-    print(TaskEntry.newTaskEntry.belongedTask);
+    TaskEntry.newTaskEntry.duration = TaskEntry.newTaskEntry.endTime
+        .difference(TaskEntry.newTaskEntry.startTime);
+    MyStopwatch.stopwatchValueNotifier.value = '00:00:00';
+    MyStopwatch.stopwatchRunningNotifier.value = 'false';
     TaskEntry.saveToFirestore();
-    // clear newTaskEntry data
-    TaskEntry.newTaskEntry.startTime = null;
   }
 }
 
@@ -472,7 +473,12 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
       taskDescription: descriptionController.text ?? '',
       userUid: user.uid,
     );
-    DocumentReference ref = await db.collection('tasks').add(newTask.toJson());
+    // DocumentReference ref = await db.collection(user.uid).add(newTask.toJson());
+    DocumentReference ref = await db
+        .collection('users')
+        .document(user.uid)
+        .collection('tasks')
+        .add(newTask.toJson());
     print(ref.documentID);
   }
 

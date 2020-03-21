@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Task {
   String title;
   String colorHex;
@@ -12,7 +14,7 @@ class Task {
       this.taskDescription,
       this.userUid});
 
-  factory Task.fromJson(Map<String, dynamic> map) {
+  factory Task.fromJson(DocumentSnapshot map) {
     return Task(
       title: map['title'],
       colorHex: map['colorHex'],
