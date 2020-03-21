@@ -1,5 +1,6 @@
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -16,17 +17,37 @@ class _HistoryPageState extends State<HistoryPage> {
   DateTime toDate;
   int yMMdFromDate;
   int yMMdToDate;
-  void initState() {
+
+  getUser() {
     FirebaseAuth.instance.currentUser().then((user) {
       setState(() {
         useruid = user.uid;
       });
     });
-    fromDate = DateTime.now();
+  }
+
+  setDate() async {
     toDate = DateTime.now();
+    fromDate = DateTime.now();
+    final prefs = await SharedPreferences.getInstance();
+    fromDate = toDate.subtract(Duration(days: prefs.getInt('queryRange') ?? 0));
+
     yMMdFromDate = int.parse(DateFormat('yMMd').format(fromDate));
     yMMdToDate = int.parse(DateFormat('yMMd').format(toDate));
+  }
+
+  void initState() {
     super.initState();
+    setDate();
+    getUser();
+  }
+
+  _save(int newVal) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'queryRange';
+    final value = newVal;
+    prefs.setInt(key, value);
+    print('saved $value');
   }
 
   @override
@@ -89,9 +110,7 @@ class _HistoryPageState extends State<HistoryPage> {
               margin: EdgeInsets.all(20),
               child: StreamBuilder(
                 stream: Firestore.instance
-                    .collection('users')
-                    .document(useruid)
-                    .collection('taskEntries')
+                    .collection('users/$useruid/taskEntries')
                     .orderBy('endTime', descending: true)
                     .snapshots(),
                 builder: (BuildContext context,
@@ -178,7 +197,7 @@ class _HistoryPageState extends State<HistoryPage> {
     if (leftOrRight == 'left') {
       DateTime choseDate = await showDatePicker(
           context: context,
-          initialDate: DateTime.now(),
+          initialDate: fromDate,
           firstDate: DateTime(2020),
           lastDate: DateTime.now());
       setState(() {
@@ -196,14 +215,18 @@ class _HistoryPageState extends State<HistoryPage> {
         yMMdToDate = int.parse(DateFormat('yMMd').format(toDate));
       });
     }
+    Duration dayViewRange = toDate.difference(fromDate);
+    _save(dayViewRange.inDays);
   }
 
   arrowBtnFunc(String leftorRight) {
     Duration dayViewRange = toDate.difference(fromDate);
     if (leftorRight == 'left') {
       setState(() {
-        DateTime newFromDate = fromDate.subtract(dayViewRange).subtract(Duration(days: 1));
-        DateTime newToDate = toDate.subtract(dayViewRange).subtract(Duration(days: 1));
+        DateTime newFromDate =
+            fromDate.subtract(dayViewRange).subtract(Duration(days: 1));
+        DateTime newToDate =
+            toDate.subtract(dayViewRange).subtract(Duration(days: 1));
         fromDate = newFromDate;
         toDate = newToDate;
         yMMdFromDate = int.parse(DateFormat('yMMd').format(fromDate));
@@ -211,7 +234,8 @@ class _HistoryPageState extends State<HistoryPage> {
       });
     } else if (leftorRight == 'right') {
       setState(() {
-        DateTime newFromDate = fromDate.add(dayViewRange).add(Duration(days: 1));
+        DateTime newFromDate =
+            fromDate.add(dayViewRange).add(Duration(days: 1));
         DateTime newToDate = toDate.add(dayViewRange).add(Duration(days: 1));
         fromDate = newFromDate;
         toDate = newToDate;
