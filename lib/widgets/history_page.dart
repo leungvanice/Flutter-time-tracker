@@ -128,11 +128,10 @@ class _HistoryPageState extends State<HistoryPage> {
                                     height: 40,
                                     child: Row(
                                       children: <Widget>[
-                                        Icon(
-                                          MdiIcons.fromString(
+                                        taskIcon(
                                             document['belongedTask']['icon'],
-                                          ),
-                                        ),
+                                            document['belongedTask']
+                                                ['colorHex']),
                                         // text column
                                         Container(
                                           color: Colors.white,
@@ -189,6 +188,18 @@ class _HistoryPageState extends State<HistoryPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget taskIcon(String icon, String colorString) {
+    String valueString = colorString.split('(0x')[1].split(')')[0];
+    int value = int.parse(valueString, radix: 16);
+    Color color = Color(value);
+    return Icon(
+      MdiIcons.fromString(
+        icon,
+      ),
+      color: color,
     );
   }
 

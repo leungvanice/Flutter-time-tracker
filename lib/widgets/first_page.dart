@@ -57,10 +57,6 @@ class _FirstPageState extends State<FirstPage> {
           onPressed: () async {
             final prefs = await SharedPreferences.getInstance();
 
-            // DynamicTheme.of(context).setBrightness(
-            //     Theme.of(context).brightness == Brightness.dark
-            //         ? Brightness.light
-            //         : Brightness.dark);
             if (Theme.of(context).brightness == Brightness.dark) {
               DynamicTheme.of(context).setBrightness(Brightness.light);
               prefs.setBool('isDark', false);
@@ -77,7 +73,6 @@ class _FirstPageState extends State<FirstPage> {
               signOutWithGoogle();
               setState(() {
                 MyStopwatch.stopwatch.stop();
-                // reset stopwatch
                 MyStopwatch.stopwatch.reset();
                 MyStopwatch.stopwatchStarted.value = 'false';
                 Navigator.pushNamedAndRemoveUntil(
@@ -168,11 +163,8 @@ class _FirstPageState extends State<FirstPage> {
                                       height: 40,
                                       child: Row(
                                         children: <Widget>[
-                                          Icon(
-                                            MdiIcons.fromString(
-                                              document['icon'],
-                                            ),
-                                          ),
+                                          taskIcon(document['icon'],
+                                              document['colorHex']),
                                           Padding(
                                             padding:
                                                 const EdgeInsets.only(left: 10),
@@ -217,6 +209,18 @@ class _FirstPageState extends State<FirstPage> {
     );
   }
 
+  Widget taskIcon(String icon, String colorString) {
+    String valueString = colorString.split('(0x')[1].split(')')[0];
+    int value = int.parse(valueString, radix: 16);
+    Color color = Color(value);
+    return Icon(
+      MdiIcons.fromString(
+        icon,
+      ),
+      color: color,
+    );
+  }
+
   void startTask(String belongedTaskDocumentId, Task task) {
     MyStopwatch.stopwatch.start();
 
@@ -235,7 +239,6 @@ class _FirstPageState extends State<FirstPage> {
       TaskEntry.newTaskEntry.belongedTaskId = belongedTaskDocumentId;
       TaskEntry.newTaskEntry.belongedTask = task;
       TaskEntry.newTaskEntry.id = DateTime.now().toIso8601String();
-      print(TaskEntry.newTaskEntry.startTime);
     }
     MyStopwatch.stopwatchStarted.value = 'true';
   }
