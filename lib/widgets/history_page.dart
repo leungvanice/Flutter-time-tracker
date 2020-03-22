@@ -19,7 +19,9 @@ class _HistoryPageState extends State<HistoryPage> {
   DateTime toDate;
   int yMMdFromDate;
   int yMMdToDate;
+  int yMMdToday;
   List documents;
+  ValueNotifier todayNotifier = ValueNotifier('true');
 
   getUser() {
     FirebaseAuth.instance.currentUser().then((user) {
@@ -32,15 +34,18 @@ class _HistoryPageState extends State<HistoryPage> {
   setDate() async {
     toDate = DateTime.now();
     fromDate = DateTime.now();
+
     final prefs = await SharedPreferences.getInstance();
     fromDate = toDate.subtract(Duration(days: prefs.getInt('queryRange') ?? 0));
 
     yMMdFromDate = int.parse(DateFormat('yMMd').format(fromDate));
     yMMdToDate = int.parse(DateFormat('yMMd').format(toDate));
+    yMMdToday = int.parse(DateFormat('yMMd').format(toDate));
   }
 
   void initState() {
     super.initState();
+
     setDate();
     getUser();
   }
@@ -99,12 +104,13 @@ class _HistoryPageState extends State<HistoryPage> {
               ],
             ),
           ),
+          // showRunningTask(),
           ValueListenableBuilder(
-            valueListenable: MyStopwatch.stopwatchRunningNotifier,
+            valueListenable: todayNotifier,
             builder: (context, value, child) {
-              return MyStopwatch.stopwatchRunningNotifier.value == 'true'
+              return todayNotifier.value == 'true'
                   ? showRunningTask()
-                  : Container(height: 10,);
+                  : Container();
             },
           ),
           // history list
@@ -213,65 +219,81 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Widget showRunningTask() {
-    String valueString = TaskEntry.newTaskEntry.belongedTask.colorHex
-        .split('(0x')[1]
-        .split(')')[0];
+    return ValueListenableBuilder(
+      valueListenable: MyStopwatch.stopwatchRunningNotifier,
+      builder: (context, value, child) {
+        return MyStopwatch.stopwatchRunningNotifier.value == 'true'
+            ? Container(
+                margin: EdgeInsets.only(top: 10, left: 20, right: 20),
+                height: 40,
+                child: Row(
+                  children: <Widget>[
+                    taskIcon(
+                      TaskEntry.newTaskEntry.belongedTask.icon,
+                      TaskEntry.newTaskEntry.belongedTask.colorHex,
+                    ),
+                    // text column
+                    Container(
+                      width: MediaQuery.of(context).size.width * 0.65,
+                      padding: const EdgeInsets.only(left: 10),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          // task title
+                          Text(
+                            MyStopwatch.runningTaskNotifier.value,
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: colorFromString(TaskEntry
+                                    .newTaskEntry.belongedTask.colorHex)),
+                          ),
+                          Text(
+                              "${DateFormat().add_jm().format(TaskEntry.newTaskEntry.startTime)} - ",
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: colorFromString(TaskEntry
+                                      .newTaskEntry.belongedTask.colorHex))),
+                        ],
+                      ),
+                    ),
+                    // duration display
+                    Container(
+                      alignment: Alignment.centerRight,
+                      child: ValueListenableBuilder(
+                        valueListenable: MyStopwatch.stopwatchValueNotifier,
+                        builder: (context, value, child) {
+                          return Text(
+                            MyStopwatch.stopwatchValueNotifier.value,
+                            style: TextStyle(
+                                color: colorFromString(TaskEntry
+                                    .newTaskEntry.belongedTask.colorHex)),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : Container(
+                height: 10,
+              );
+      },
+    );
+  }
+
+  Color colorFromString(String colorString) {
+    String valueString = colorString.split('(0x')[1].split(')')[0];
     int value = int.parse(valueString, radix: 16);
     Color color = Color(value);
-    return Container(
-      margin: EdgeInsets.only(top: 10, left: 20, right: 20),
-      height: 40,
-      child: Row(
-        children: <Widget>[
-          taskIcon(
-            TaskEntry.newTaskEntry.belongedTask.icon,
-            TaskEntry.newTaskEntry.belongedTask.colorHex,
-          ),
-          // text column
-          Container(
-            width: MediaQuery.of(context).size.width * 0.65,
-            padding: const EdgeInsets.only(left: 10),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                // task title
-                Text(
-                  MyStopwatch.runningTaskNotifier.value,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: color,
-                  ),
-                ),
-                Text(
-                    "${DateFormat().add_jm().format(TaskEntry.newTaskEntry.startTime)} - ",
-                    style: TextStyle(fontSize: 12, color: color)),
-              ],
-            ),
-          ),
-          // duration display
-          Container(
-            alignment: Alignment.centerRight,
-            child: ValueListenableBuilder(
-              valueListenable: MyStopwatch.stopwatchValueNotifier,
-              builder: (context, value, child) {
-                return Text(
-                  MyStopwatch.stopwatchValueNotifier.value,
-                  style: TextStyle(color: color),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
+    return color;
   }
 
   Widget noTaskEntry(String documentId, String lastDocumentId) {
     List<Widget> list = [];
     if (documentId == lastDocumentId) {
-      list.add(Container(
+      list.add(Center(
         child: Text("No task in the selected period"),
       ));
       return list[0];
@@ -309,6 +331,11 @@ class _HistoryPageState extends State<HistoryPage> {
         yMMdToDate = int.parse(DateFormat('yMMd').format(toDate));
       });
     }
+    if (yMMdToday >= yMMdFromDate && yMMdToday <= yMMdToday) {
+      todayNotifier.value = 'true';
+    } else {
+      todayNotifier.value = 'false';
+    }
     Duration dayViewRange = toDate.difference(fromDate);
     _save(dayViewRange.inDays);
   }
@@ -325,6 +352,12 @@ class _HistoryPageState extends State<HistoryPage> {
         toDate = newToDate;
         yMMdFromDate = int.parse(DateFormat('yMMd').format(fromDate));
         yMMdToDate = int.parse(DateFormat('yMMd').format(toDate));
+        if (yMMdToday >= yMMdFromDate && yMMdToday <= yMMdToDate) {
+          todayNotifier.value = 'true';
+        } else {
+          todayNotifier.value = 'false';
+        }
+        // todayNotifier.value = 'false';
       });
     } else if (leftorRight == 'right') {
       setState(() {
@@ -335,6 +368,11 @@ class _HistoryPageState extends State<HistoryPage> {
         toDate = newToDate;
         yMMdFromDate = int.parse(DateFormat('yMMd').format(fromDate));
         yMMdToDate = int.parse(DateFormat('yMMd').format(toDate));
+        if (yMMdToday >= yMMdFromDate && yMMdToday <= yMMdToDate) {
+          todayNotifier.value = 'true';
+        } else {
+          todayNotifier.value = 'false';
+        }
       });
     }
   }
