@@ -56,6 +56,10 @@ class _FirstPageState extends State<FirstPage> {
             onPressed: () {
               signOutWithGoogle();
               setState(() {
+                MyStopwatch.stopwatch.stop();
+                // reset stopwatch
+                MyStopwatch.stopwatch.reset();
+                MyStopwatch.stopwatchStarted.value = 'false';
                 Navigator.pushNamedAndRemoveUntil(
                     context, 'login-page', (_) => false);
               });
