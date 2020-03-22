@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:flutter/material.dart';
+import 'package:time_tracker/models/taskEntry.dart';
+import 'package:time_tracker/widgets/first_page.dart';
 
 class HistoryPage extends StatefulWidget {
   @override
@@ -97,10 +99,18 @@ class _HistoryPageState extends State<HistoryPage> {
               ],
             ),
           ),
+          ValueListenableBuilder(
+            valueListenable: MyStopwatch.stopwatchRunningNotifier,
+            builder: (context, value, child) {
+              return MyStopwatch.stopwatchRunningNotifier.value == 'true'
+                  ? showRunningTask()
+                  : Container(height: 10,);
+            },
+          ),
           // history list
           Expanded(
             child: Container(
-              margin: EdgeInsets.all(20),
+              margin: EdgeInsets.only(left: 20, right: 20),
               child: StreamBuilder(
                 stream: Firestore.instance
                     .collection('users/$useruid/taskEntries')
@@ -134,7 +144,6 @@ class _HistoryPageState extends State<HistoryPage> {
                                                 ['colorHex']),
                                         // text column
                                         Container(
-                                          color: Colors.white,
                                           width: MediaQuery.of(context)
                                                   .size
                                                   .width *
@@ -156,7 +165,7 @@ class _HistoryPageState extends State<HistoryPage> {
                                                     fontSize: 16),
                                               ),
                                               Text(
-                                                  "${DateFormat('HH:mm').format(document['startTime'].toDate())} - ${DateFormat('yMMd').format(document['endTime'].toDate())}",
+                                                  "${DateFormat().add_jm().format(document['startTime'].toDate())} - ${DateFormat().add_jm().format(document['endTime'].toDate())}",
                                                   style:
                                                       TextStyle(fontSize: 12)),
                                             ],
@@ -200,6 +209,62 @@ class _HistoryPageState extends State<HistoryPage> {
         icon,
       ),
       color: color,
+    );
+  }
+
+  Widget showRunningTask() {
+    String valueString = TaskEntry.newTaskEntry.belongedTask.colorHex
+        .split('(0x')[1]
+        .split(')')[0];
+    int value = int.parse(valueString, radix: 16);
+    Color color = Color(value);
+    return Container(
+      margin: EdgeInsets.only(top: 10, left: 20, right: 20),
+      height: 40,
+      child: Row(
+        children: <Widget>[
+          taskIcon(
+            TaskEntry.newTaskEntry.belongedTask.icon,
+            TaskEntry.newTaskEntry.belongedTask.colorHex,
+          ),
+          // text column
+          Container(
+            width: MediaQuery.of(context).size.width * 0.65,
+            padding: const EdgeInsets.only(left: 10),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                // task title
+                Text(
+                  MyStopwatch.runningTaskNotifier.value,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: color,
+                  ),
+                ),
+                Text(
+                    "${DateFormat().add_jm().format(TaskEntry.newTaskEntry.startTime)} - ",
+                    style: TextStyle(fontSize: 12, color: color)),
+              ],
+            ),
+          ),
+          // duration display
+          Container(
+            alignment: Alignment.centerRight,
+            child: ValueListenableBuilder(
+              valueListenable: MyStopwatch.stopwatchValueNotifier,
+              builder: (context, value, child) {
+                return Text(
+                  MyStopwatch.stopwatchValueNotifier.value,
+                  style: TextStyle(color: color),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -15,13 +15,14 @@ import '../models/taskEntry.dart';
 
 import 'package:flutter/material.dart';
 
-ValueNotifier runningTaskNotifier = ValueNotifier('');
+
 
 class MyStopwatch {
   static Stopwatch stopwatch = Stopwatch();
   static ValueNotifier stopwatchValueNotifier = ValueNotifier('00:00:00');
   static ValueNotifier stopwatchStarted = ValueNotifier('false');
   static ValueNotifier stopwatchRunningNotifier = ValueNotifier('false');
+  static ValueNotifier runningTaskNotifier = ValueNotifier('');
   static String formatDuration(Duration d) {
     return d.toString().split('.').first.padLeft(8, '0');
   }
@@ -234,7 +235,7 @@ class _FirstPageState extends State<FirstPage> {
       });
     }
     if (MyStopwatch.stopwatchStarted.value == 'false') {
-      runningTaskNotifier.value = task.title;
+      MyStopwatch.runningTaskNotifier.value = task.title;
       TaskEntry.newTaskEntry.startTime = DateTime.now();
       TaskEntry.newTaskEntry.belongedTaskId = belongedTaskDocumentId;
       TaskEntry.newTaskEntry.belongedTask = task;
@@ -260,7 +261,7 @@ class _CurrentCardState extends State<CurrentCard> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: <Widget>[
             ValueListenableBuilder(
-              valueListenable: runningTaskNotifier,
+              valueListenable: MyStopwatch.runningTaskNotifier,
               builder: (context, value, child) {
                 return Text(
                   value,
