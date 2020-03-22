@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:dynamic_theme/dynamic_theme.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:material_design_icons_flutter/icon_map.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_tracker/sign_in.dart';
 
 import '../models/task.dart';
@@ -50,6 +52,24 @@ class _FirstPageState extends State<FirstPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Time Tracker"),
+        leading: IconButton(
+          icon: Icon(MdiIcons.themeLightDark),
+          onPressed: () async {
+            final prefs = await SharedPreferences.getInstance();
+
+            // DynamicTheme.of(context).setBrightness(
+            //     Theme.of(context).brightness == Brightness.dark
+            //         ? Brightness.light
+            //         : Brightness.dark);
+            if (Theme.of(context).brightness == Brightness.dark) {
+              DynamicTheme.of(context).setBrightness(Brightness.light);
+              prefs.setBool('isDark', false);
+            } else if (Theme.of(context).brightness == Brightness.light) {
+              DynamicTheme.of(context).setBrightness(Brightness.dark);
+              prefs.setBool('isDark', true);
+            }
+          },
+        ),
         actions: <Widget>[
           FlatButton(
             child: Text("Sign out"),
