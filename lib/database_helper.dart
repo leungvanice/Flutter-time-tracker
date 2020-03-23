@@ -5,15 +5,14 @@ import 'package:path_provider/path_provider.dart';
 
 import './models/task.dart';
 
-final String tableTask = 'tasks';
-final String columnId = '_id';
-final String columnTitle = 'title';
-final String columnColorHex = 'colorHex';
-final String columnIcon = 'icon';
-final String columnTaskDescription = 'taskDescription';
-final String columnUserUid = 'userUid';
-
 class TaskDatabaseHelper {
+  final String tableTask = 'tasks';
+  final String columnId = '_id';
+  final String columnTitle = 'title';
+  final String columnColorHex = 'colorHex';
+  final String columnIcon = 'icon';
+  final String columnTaskDescription = 'taskDescription';
+  final String columnUserUid = 'userUid';
   static final _databaseName = 'TaskDatabase.db';
   static final _databaseVersion = 1;
 
@@ -76,3 +75,4 @@ class TaskDatabaseHelper {
     }
   }
 }
+

@@ -4,6 +4,8 @@ import './history_page.dart';
 import 'package:flutter/material.dart';
 
 class RootPage extends StatefulWidget {
+  ValueNotifier authNotifier;
+  RootPage({this.authNotifier});
   @override
   _RootPageState createState() => _RootPageState();
 }
@@ -16,7 +18,9 @@ class _RootPageState extends State<RootPage> {
       child: Scaffold(
         body: TabBarView(
           children: <Widget>[
-            FirstPage(),
+            FirstPage(
+              authNotifier: widget.authNotifier,
+            ),
             Container(
               color: Colors.orange,
             ),

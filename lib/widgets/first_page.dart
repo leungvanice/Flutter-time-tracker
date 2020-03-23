@@ -28,6 +28,8 @@ class MyStopwatch {
 }
 
 class FirstPage extends StatefulWidget {
+  ValueNotifier authNotifier;
+  FirstPage({this.authNotifier});
   @override
   _FirstPageState createState() => _FirstPageState();
 }
@@ -41,17 +43,13 @@ class _FirstPageState extends State<FirstPage> {
   void initState() {
     FirebaseAuth.instance.currentUser().then((user) {
       setState(() {
-        username = user.displayName;
-        useruid = user.uid;
+        if (user != null) {
+          username = user.displayName;
+          useruid = user.uid;
+        }
       });
     });
     super.initState();
-  }
-
-  read() async {
-    TaskDatabaseHelper helper = TaskDatabaseHelper.instance;
-    Task task = await helper.queryTask(1);
-    task != null ? print(task.title) : print("No data");
   }
 
   getTaskFromFS() async {
@@ -79,7 +77,6 @@ class _FirstPageState extends State<FirstPage> {
           icon: Icon(MdiIcons.themeLightDark),
           onPressed: () async {
             final prefs = await SharedPreferences.getInstance();
-
             if (Theme.of(context).brightness == Brightness.dark) {
               DynamicTheme.of(context).setBrightness(Brightness.light);
               prefs.setBool('isDark', false);
@@ -90,31 +87,21 @@ class _FirstPageState extends State<FirstPage> {
           },
         ),
         actions: <Widget>[
+          // sign out
           FlatButton(
             child: Text("Sign out"),
             onPressed: () async {
-              read();
-
-              // Firestore.instance
-              //     .collection('users/$useruid/tasks')
-              //     .orderBy('title')
-              //     .snapshots()
-              //     .listen((data) {
-              //   data.documents.forEach((doc) {
-              //     Task task = Task.fromJson(doc);
-              //     TaskDatabaseHelper helper = TaskDatabaseHelper.instance;
-              //     helper.insert(task);
-              //   });
-              // });
-
-              // signOutWithGoogle();
-              // setState(() {
-              //   MyStopwatch.stopwatch.stop();
-              //   MyStopwatch.stopwatch.reset();
-              //   MyStopwatch.stopwatchStarted.value = 'false';
-              //   Navigator.pushNamedAndRemoveUntil(
-              //       context, 'login-page', (_) => false);
-              // });
+              await signOutWithGoogle();
+              setState(() {
+                MyStopwatch.stopwatch.stop();
+                MyStopwatch.stopwatch.reset();
+                MyStopwatch.stopwatchStarted.value = 'false';
+              });
+              final prefs = await SharedPreferences.getInstance();
+              prefs.setBool('authenticated', false);
+              widget.authNotifier.value = '';
+              // Navigator.pushNamedAndRemoveUntil(
+              //     context, 'login-page', (_) => false);
             },
           ),
         ],
@@ -131,8 +118,8 @@ class _FirstPageState extends State<FirstPage> {
                       ? NoTaskRunningCard()
                       : CurrentCard();
                 }),
+            // space
             SizedBox(
-              // space
               height: 30,
             ),
             // main content
