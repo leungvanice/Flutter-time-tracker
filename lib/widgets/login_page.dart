@@ -1,6 +1,7 @@
 // import './root_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_tracker/database_helper.dart';
 import 'package:time_tracker/models/task.dart';
 import 'package:time_tracker/models/taskEntry.dart';
@@ -32,14 +33,6 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
-  getUseruid() async {
-    user = await FirebaseAuth.instance.currentUser();
-    if (user != null) {
-      print("Not null");
-      return user.uid;
-    }
-  }
-
   List<Task> taskList = [];
   @override
   Widget build(BuildContext context) {
@@ -58,7 +51,7 @@ class _LoginPageState extends State<LoginPage> {
           String uid;
           TaskDatabaseHelper taskhelper = TaskDatabaseHelper.instance;
           TaskDatabaseHelper entryhelper = TaskDatabaseHelper.instance;
-          getUseruid();
+
           taskhelper.deleteAll();
           entryhelper.deleteAll();
 
@@ -97,6 +90,7 @@ class _LoginPageState extends State<LoginPage> {
               });
             });
             widget.authNotifier.value = uid;
+            saveUid(uid);
           });
 
           // Navigator.pushNamedAndRemoveUntil(context, 'root-page', (_) => false);
@@ -126,6 +120,11 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
+  }
+
+  saveUid(String uid) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('uid', uid);
   }
 
   Duration parseDuration(String s) {

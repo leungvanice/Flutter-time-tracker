@@ -99,6 +99,7 @@ class _FirstPageState extends State<FirstPage> {
               });
               final prefs = await SharedPreferences.getInstance();
               prefs.setBool('authenticated', false);
+              prefs.setString('uid', '');
               widget.authNotifier.value = '';
               // Navigator.pushNamedAndRemoveUntil(
               //     context, 'login-page', (_) => false);

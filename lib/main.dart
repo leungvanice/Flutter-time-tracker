@@ -78,27 +78,15 @@ class _TimeTrackerAppState extends State<TimeTrackerApp> {
   ValueNotifier authNotifier = ValueNotifier('');
   @override
   void initState() {
-    checkIfNull();
-    user == null ? print("Null") : print("User logged in");
-
     super.initState();
+    setUseruid();
   }
 
-  checkIfNull() async {
-    await FirebaseAuth.instance.currentUser().then((onUser) {
-      user = onUser ?? null;
-      if (user != null) {
-        useruid = user.uid;
-      } else {
-        useruid = null;
-      }
-    });
+  setUseruid() async {
+    final prefs = await SharedPreferences.getInstance();
+    useruid = prefs.getString('uid');
+    authNotifier.value = useruid;
   }
-
-  // @override
-  // Widget build(BuildContext context) {
-  //   return user == null && useruid == null ? LoginPage() : RootPage();
-  // }
 
   @override
   Widget build(BuildContext context) {
