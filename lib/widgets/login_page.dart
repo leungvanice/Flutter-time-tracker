@@ -1,4 +1,9 @@
 // import './root_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:time_tracker/database_helper.dart';
+import 'package:time_tracker/models/task.dart';
+
 import '../sign_in.dart';
 
 import 'package:flutter/material.dart';
@@ -9,6 +14,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  List<Task> taskList = [];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -23,8 +29,25 @@ class _LoginPageState extends State<LoginPage> {
       splashColor: Colors.grey,
       onPressed: () {
         signInWithGoogle().whenComplete(() {
-          // Navigator.push(
-          //     context, MaterialPageRoute(builder: (context) => RootPage()));
+          String useruid;
+          TaskDatabaseHelper helper = TaskDatabaseHelper.instance;
+          helper.deleteAll();
+          FirebaseAuth.instance.currentUser().then((user) {
+            useruid = user.uid;
+            print(useruid);
+            Firestore.instance
+                .collection('users/$useruid/tasks')
+                .orderBy('title')
+                .snapshots()
+                .listen((data) {
+              data.documents.forEach((doc) {
+                Task task = Task.fromJson(doc);
+                TaskDatabaseHelper helper = TaskDatabaseHelper.instance;
+                helper.insert(task);
+              });
+            });
+          });
+
           Navigator.pushNamedAndRemoveUntil(context, 'root-page', (_) => false);
         });
       },

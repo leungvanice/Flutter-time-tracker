@@ -12,10 +12,9 @@ import 'package:time_tracker/sign_in.dart';
 
 import '../models/task.dart';
 import '../models/taskEntry.dart';
+import '../database_helper.dart';
 
 import 'package:flutter/material.dart';
-
-
 
 class MyStopwatch {
   static Stopwatch stopwatch = Stopwatch();
@@ -36,6 +35,7 @@ class FirstPage extends StatefulWidget {
 class _FirstPageState extends State<FirstPage> {
   String username = '';
   String useruid;
+  List taskList = [];
   final db = Firestore.instance;
 
   void initState() {
@@ -46,6 +46,28 @@ class _FirstPageState extends State<FirstPage> {
       });
     });
     super.initState();
+  }
+
+  read() async {
+    TaskDatabaseHelper helper = TaskDatabaseHelper.instance;
+    Task task = await helper.queryTask(1);
+    task != null ? print(task.title) : print("No data");
+  }
+
+  getTaskFromFS() async {
+    List<Task> taskList = [];
+
+    QuerySnapshot snapshot = await Firestore.instance
+        .collection('users/$useruid/tasks')
+        .orderBy('title')
+        .getDocuments();
+
+    var documents = snapshot.documents;
+    for (int i = 0; i < taskList.length; i++) {
+      Task task = Task.fromJson(documents[i]);
+      taskList.add(task);
+    }
+    print(taskList);
   }
 
   @override
@@ -70,15 +92,29 @@ class _FirstPageState extends State<FirstPage> {
         actions: <Widget>[
           FlatButton(
             child: Text("Sign out"),
-            onPressed: () {
-              signOutWithGoogle();
-              setState(() {
-                MyStopwatch.stopwatch.stop();
-                MyStopwatch.stopwatch.reset();
-                MyStopwatch.stopwatchStarted.value = 'false';
-                Navigator.pushNamedAndRemoveUntil(
-                    context, 'login-page', (_) => false);
-              });
+            onPressed: () async {
+              read();
+
+              // Firestore.instance
+              //     .collection('users/$useruid/tasks')
+              //     .orderBy('title')
+              //     .snapshots()
+              //     .listen((data) {
+              //   data.documents.forEach((doc) {
+              //     Task task = Task.fromJson(doc);
+              //     TaskDatabaseHelper helper = TaskDatabaseHelper.instance;
+              //     helper.insert(task);
+              //   });
+              // });
+
+              // signOutWithGoogle();
+              // setState(() {
+              //   MyStopwatch.stopwatch.stop();
+              //   MyStopwatch.stopwatch.reset();
+              //   MyStopwatch.stopwatchStarted.value = 'false';
+              //   Navigator.pushNamedAndRemoveUntil(
+              //       context, 'login-page', (_) => false);
+              // });
             },
           ),
         ],
@@ -532,13 +568,18 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
       taskDescription: descriptionController.text ?? '',
       userUid: user.uid,
     );
-    // DocumentReference ref = await db.collection(user.uid).add(newTask.toJson());
+
     DocumentReference ref = await db
         .collection('users')
         .document(user.uid)
         .collection('tasks')
         .add(newTask.toJson());
-    print(ref.documentID);
+
+    print("Inserted to firebase: $ref");
+
+    TaskDatabaseHelper helper = TaskDatabaseHelper.instance;
+    int id = await helper.insert(newTask);
+    print("Inserted to local storage: $id");
   }
 
   Future notCompletedWarning() async {

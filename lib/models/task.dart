@@ -24,6 +24,16 @@ class Task {
     );
   }
 
+  factory Task.fromMap(Map<String, dynamic> map) {
+    return Task(
+      title: map['title'],
+      colorHex: map['colorHex'],
+      icon: map['icon'],
+      taskDescription: map['taskDescription'], 
+      userUid: map['userUid'],
+    );
+  }
+
   toJson() {
     return {
       'title': title,

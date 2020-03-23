@@ -58,7 +58,10 @@ class _HistoryPageState extends State<HistoryPage> {
         actions: <Widget>[
           IconButton(
             icon: Icon(Icons.add),
-            onPressed: null,
+            onPressed: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => CreateTaskEntry()));
+            },
           ),
         ],
       ),
@@ -104,7 +107,6 @@ class _HistoryPageState extends State<HistoryPage> {
               ],
             ),
           ),
-          // showRunningTask(),
           ValueListenableBuilder(
             valueListenable: todayNotifier,
             builder: (context, value, child) {
@@ -379,5 +381,21 @@ class _HistoryPageState extends State<HistoryPage> {
 
   formatStringDuration(String d) {
     return d.split('.').first.padLeft(8, '0');
+  }
+}
+
+class CreateTaskEntry extends StatefulWidget {
+  @override
+  _CreateTaskEntryState createState() => _CreateTaskEntryState();
+}
+
+class _CreateTaskEntryState extends State<CreateTaskEntry> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Create Task Entry"),
+      ),
+    );
   }
 }

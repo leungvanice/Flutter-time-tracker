@@ -35,6 +35,16 @@ class TaskEntry {
     };
   }
 
+  TaskEntry.fromJson(Map<String, dynamic> map) {
+    id = map['id'];
+    belongedTaskId = map['belongedTaskId'];
+    belongedTask = map['task'];
+    note = map['note'];
+    startTime = map['startTime'];
+    endTime = map['endTime'];
+    duration = map['duration'];
+  }
+
   static saveToFirestore() async {
     await FirebaseAuth.instance.currentUser().then((user) {
       uid = user.uid;
