@@ -24,8 +24,8 @@ void main() async {
 }
 
 class MyApp extends StatefulWidget {
-  Brightness defaultBrightness;
-  FirebaseUser user;
+  final Brightness defaultBrightness;
+  final FirebaseUser user;
   MyApp({this.defaultBrightness, this.user});
 
   @override
@@ -37,11 +37,6 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    // if (widget.user.uid == null) {
-    //   passData = 'none';
-    // } else {
-    //   passData = widget.user.uid;
-    // }
   }
 
   @override

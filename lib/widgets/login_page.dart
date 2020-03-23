@@ -1,16 +1,16 @@
 // import './root_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_tracker/database_helper.dart';
 import 'package:time_tracker/models/task.dart';
+import 'package:time_tracker/models/taskEntry.dart';
 
 import '../sign_in.dart';
 
 import 'package:flutter/material.dart';
 
 class LoginPage extends StatefulWidget {
-  ValueNotifier authNotifier;
+  final ValueNotifier authNotifier;
   LoginPage({this.authNotifier});
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -56,9 +56,12 @@ class _LoginPageState extends State<LoginPage> {
       onPressed: () async {
         await signInWithGoogle().whenComplete(() async {
           String uid;
-          TaskDatabaseHelper helper = TaskDatabaseHelper.instance;
+          TaskDatabaseHelper taskhelper = TaskDatabaseHelper.instance;
+          TaskDatabaseHelper entryhelper = TaskDatabaseHelper.instance;
           getUseruid();
-          helper.deleteAll();
+          taskhelper.deleteAll();
+          entryhelper.deleteAll();
+
           // sync user tasks into db
           FirebaseAuth.instance.currentUser().then((user) {
             uid = user.uid;
@@ -74,8 +77,28 @@ class _LoginPageState extends State<LoginPage> {
                 helper.insert(task);
               });
             });
+            Firestore.instance
+                .collection('users/$uid/taskEntries')
+                .orderBy('endTime')
+                .snapshots()
+                .listen((data) {
+              data.documents.forEach((doc) {
+                TaskEntry taskEntry = TaskEntry(
+                  belongedTaskName: doc['belongedTask']['title'],
+                  duration: parseDuration(doc['duration']),
+                  startTime: doc['startTime'].toDate(),
+                  endTime: doc['endTime'].toDate(),
+                  note: doc['note'] ?? '',
+                );
+
+                TaskEntryDatabaseHelper helper =
+                    TaskEntryDatabaseHelper.instance;
+                helper.insert(taskEntry);
+              });
+            });
             widget.authNotifier.value = uid;
           });
+
           // Navigator.pushNamedAndRemoveUntil(context, 'root-page', (_) => false);
         });
       },
@@ -103,5 +126,20 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
+  }
+
+  Duration parseDuration(String s) {
+    int hours = 0;
+    int minutes = 0;
+    int micros;
+    List<String> parts = s.split(':');
+    if (parts.length > 2) {
+      hours = int.parse(parts[parts.length - 3]);
+    }
+    if (parts.length > 1) {
+      minutes = int.parse(parts[parts.length - 2]);
+    }
+    micros = (double.parse(parts[parts.length - 1]) * 1000000).round();
+    return Duration(hours: hours, minutes: minutes, microseconds: micros);
   }
 }

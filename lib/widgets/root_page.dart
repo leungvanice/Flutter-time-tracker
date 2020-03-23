@@ -4,7 +4,7 @@ import './history_page.dart';
 import 'package:flutter/material.dart';
 
 class RootPage extends StatefulWidget {
-  ValueNotifier authNotifier;
+  final ValueNotifier authNotifier;
   RootPage({this.authNotifier});
   @override
   _RootPageState createState() => _RootPageState();

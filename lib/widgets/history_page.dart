@@ -5,8 +5,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:flutter/material.dart';
+import 'package:time_tracker/models/task.dart';
 import 'package:time_tracker/models/taskEntry.dart';
 import 'package:time_tracker/widgets/first_page.dart';
+
+import '../database_helper.dart';
 
 class HistoryPage extends StatefulWidget {
   @override
@@ -59,8 +62,9 @@ class _HistoryPageState extends State<HistoryPage> {
           IconButton(
             icon: Icon(Icons.add),
             onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => CreateTaskEntry()));
+              // Navigator.push(context,
+              //     MaterialPageRoute(builder: (context) => CreateTaskEntry()));
+              read();
             },
           ),
         ],
@@ -208,6 +212,30 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
+  Duration parseDuration(String s) {
+    int hours = 0;
+    int minutes = 0;
+    int micros;
+    List<String> parts = s.split(':');
+    if (parts.length > 2) {
+      hours = int.parse(parts[parts.length - 3]);
+    }
+    if (parts.length > 1) {
+      minutes = int.parse(parts[parts.length - 2]);
+    }
+    micros = (double.parse(parts[parts.length - 1]) * 1000000).round();
+    return Duration(hours: hours, minutes: minutes, microseconds: micros);
+  }
+
+  read() async {
+    TaskEntryDatabaseHelper helper = TaskEntryDatabaseHelper.instance;
+    TaskEntry entry = await helper.query(10);
+    print(entry.belongedTaskName);
+    TaskDatabaseHelper db = TaskDatabaseHelper.instance;
+    Task task = await db.queryTask(1);
+    print(task.title);
+  }
+
   Widget taskIcon(String icon, String colorString) {
     String valueString = colorString.split('(0x')[1].split(')')[0];
     int value = int.parse(valueString, radix: 16);
@@ -303,7 +331,7 @@ class _HistoryPageState extends State<HistoryPage> {
     return Container();
   }
 
-  _save(int newVal) async {
+  _saveRange(int newVal) async {
     final prefs = await SharedPreferences.getInstance();
     final key = 'queryRange';
     final value = newVal;
@@ -339,7 +367,7 @@ class _HistoryPageState extends State<HistoryPage> {
       todayNotifier.value = 'false';
     }
     Duration dayViewRange = toDate.difference(fromDate);
-    _save(dayViewRange.inDays);
+    _saveRange(dayViewRange.inDays);
   }
 
   arrowBtnFunc(String leftorRight) {
