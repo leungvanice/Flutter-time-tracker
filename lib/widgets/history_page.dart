@@ -406,14 +406,18 @@ class CreateTaskEntry extends StatefulWidget {
 
 class _CreateTaskEntryState extends State<CreateTaskEntry> {
   List<Task> fsTaskList = [];
+  Task choseTask;
   String useruid;
   DateTime startTime = DateTime.now();
   DateTime endTime;
   Duration duration;
+  String value;
+  TextEditingController noteController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    value = widget.taskList[0].title;
     initFunction();
   }
 
@@ -443,7 +447,7 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
   }
 
   formatDuration(Duration duration) {
-    return duration.toString().split(':00.000000')[0].padLeft(5, '0');
+    return duration.toString().split('.')[0].padLeft(8, '0');
   }
 
   @override
@@ -474,17 +478,21 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
                     ),
                   ),
                   Container(
-                    decoration:
-                        BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                    // decoration:
+                    //     BoxDecoration(borderRadius: BorderRadius.circular(10)),
                     child: DropdownButton(
-                      items: widget.taskList.map((task) {
+                      items: widget.taskList.map((Task task) {
                         return DropdownMenuItem(
-                          child: Container(
-                            child: Text(task.title),
-                          ),
+                          child: Text(task.title),
+                          value: task.title,
                         );
                       }).toList(),
-                      onChanged: (val) {},
+                      value: value,
+                      onChanged: (val) {
+                        setState(() {
+                          value = val;
+                        });
+                      },
                     ),
                   ),
                 ],
@@ -531,7 +539,7 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
                 ],
               ),
             ),
-            // Third row > Choose icon
+            // Third row
             Container(
               height: 45,
               decoration: BoxDecoration(
@@ -625,9 +633,10 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
                 ],
               ),
             ),
-            // Thourth Row 
+            // Thourth Row
             Container(
               child: TextField(
+                controller: noteController,
                 maxLines: 8,
                 decoration: InputDecoration(
                   hintText: 'note (optional)',
@@ -647,7 +656,8 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
                 FlatButton(
                   child: Text("Save"),
                   onPressed: () {
-                    
+                    saveTaskEntry();
+                    Navigator.pop(context);
                   },
                 ),
               ],
@@ -656,6 +666,23 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
         ),
       ),
     );
+  }
+
+  saveTaskEntry() async {
+    QuerySnapshot snapshot = await Firestore.instance
+        .collection('users/$useruid/tasks')
+        .where('title', isEqualTo: value)
+        .getDocuments();
+    var documents = snapshot.documents;
+    TaskEntry.newTaskEntry.id = DateTime.now().toIso8601String();
+    TaskEntry.newTaskEntry.belongedTask = Task.fromJson(documents[0]);
+    TaskEntry.newTaskEntry.belongedTaskId = documents[0].documentID;
+    TaskEntry.newTaskEntry.note = noteController.text;
+    TaskEntry.newTaskEntry.startTime = startTime;
+    TaskEntry.newTaskEntry.endTime = endTime;
+    TaskEntry.newTaskEntry.duration = duration;
+
+    await TaskEntry.saveToFirestore();
   }
 
   chooseDate(String leftOrRight) async {
