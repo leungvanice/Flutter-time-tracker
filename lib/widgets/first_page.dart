@@ -101,8 +101,6 @@ class _FirstPageState extends State<FirstPage> {
               prefs.setBool('authenticated', false);
               prefs.setString('uid', '');
               widget.authNotifier.value = '';
-              // Navigator.pushNamedAndRemoveUntil(
-              //     context, 'login-page', (_) => false);
             },
           ),
         ],
@@ -248,7 +246,6 @@ class _FirstPageState extends State<FirstPage> {
 
   void startTask(String belongedTaskDocumentId, Task task) {
     MyStopwatch.stopwatch.start();
-
     MyStopwatch.stopwatchRunningNotifier.value = 'true';
 
     if (MyStopwatch.stopwatchRunningNotifier.value == 'true') {
@@ -329,15 +326,15 @@ class _CurrentCardState extends State<CurrentCard> {
     MyStopwatch.stopwatchValueNotifier.value = '00:00:00';
     MyStopwatch.stopwatchRunningNotifier.value = 'false';
     TaskEntry.saveToFirestore();
-    TaskEntry taskEntry = TaskEntry(
-        belongedTaskName: TaskEntry.newTaskEntry.belongedTask.title,
-        duration: parseDuration(TaskEntry.newTaskEntry.duration.toString()),
-        startTime: TaskEntry.newTaskEntry.startTime,
-        endTime: TaskEntry.newTaskEntry.endTime,
-        note: TaskEntry.newTaskEntry.note);
+    // TaskEntry taskEntry = TaskEntry(
+    //     belongedTaskName: TaskEntry.newTaskEntry.belongedTask.title,
+    //     duration: parseDuration(TaskEntry.newTaskEntry.duration.toString()),
+    //     startTime: TaskEntry.newTaskEntry.startTime,
+    //     endTime: TaskEntry.newTaskEntry.endTime,
+    //     note: TaskEntry.newTaskEntry.note);
 
-    TaskEntryDatabaseHelper helper = TaskEntryDatabaseHelper.instance;
-    helper.insert(taskEntry);
+    // TaskEntryDatabaseHelper helper = TaskEntryDatabaseHelper.instance;
+    // helper.insert(taskEntry);
   }
 
   Duration parseDuration(String s) {

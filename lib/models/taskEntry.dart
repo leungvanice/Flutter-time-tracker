@@ -90,13 +90,13 @@ class TaskEntry {
       uid = user.uid;
     });
     print("User uid: $uid");
-    DocumentReference ref = await db
-        .collection('users')
-        .document(uid)
-        .collection('tasks')
-        .document(newTaskEntry.belongedTaskId)
-        .collection('taskEntries')
-        .add(newTaskEntry.toJson());
+    // DocumentReference ref = await db
+    //     .collection('users')
+    //     .document(uid)
+    //     .collection('tasks')
+    //     .document(newTaskEntry.belongedTaskId)
+    //     .collection('taskEntries')
+    //     .add(newTaskEntry.toJson());
 
     DocumentReference reference = await db
         .collection('users')
@@ -104,6 +104,6 @@ class TaskEntry {
         .collection('taskEntries')
         .add(newTaskEntry.toJson());
 
-    return 'Created $ref, $reference';
+    return 'Created $reference';
   }
 }

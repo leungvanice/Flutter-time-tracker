@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -61,10 +62,20 @@ class _HistoryPageState extends State<HistoryPage> {
         actions: <Widget>[
           IconButton(
             icon: Icon(Icons.add),
-            onPressed: () {
-              // Navigator.push(context,
-              //     MaterialPageRoute(builder: (context) => CreateTaskEntry()));
-              read();
+            onPressed: () async {
+              List<Task> taskList = [];
+              QuerySnapshot snapshot = await Firestore.instance
+                  .collection('users/$useruid/tasks')
+                  .getDocuments();
+              var documents = snapshot.documents;
+              for (int i = 0; i < documents.length; i++) {
+                Task task = Task.fromJson(documents[i]);
+                taskList.add(task);
+              }
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => CreateTaskEntry(taskList)));
             },
           ),
         ],
@@ -192,13 +203,7 @@ class _HistoryPageState extends State<HistoryPage> {
                                       ],
                                     ),
                                   )
-                                : noTaskEntry(
-                                    document.documentID,
-                                    snapshot
-                                        .data
-                                        .documents[
-                                            snapshot.data.documents.length - 1]
-                                        .documentID);
+                                : Container();
                           },
                         ).toList(),
                       );
@@ -225,15 +230,6 @@ class _HistoryPageState extends State<HistoryPage> {
     }
     micros = (double.parse(parts[parts.length - 1]) * 1000000).round();
     return Duration(hours: hours, minutes: minutes, microseconds: micros);
-  }
-
-  read() async {
-    TaskEntryDatabaseHelper helper = TaskEntryDatabaseHelper.instance;
-    TaskEntry entry = await helper.query(10);
-    print(entry.belongedTaskName);
-    TaskDatabaseHelper db = TaskDatabaseHelper.instance;
-    Task task = await db.queryTask(1);
-    print(task.title);
   }
 
   Widget taskIcon(String icon, String colorString) {
@@ -320,17 +316,6 @@ class _HistoryPageState extends State<HistoryPage> {
     return color;
   }
 
-  Widget noTaskEntry(String documentId, String lastDocumentId) {
-    List<Widget> list = [];
-    if (documentId == lastDocumentId) {
-      list.add(Center(
-        child: Text("No task in the selected period"),
-      ));
-      return list[0];
-    }
-    return Container();
-  }
-
   _saveRange(int newVal) async {
     final prefs = await SharedPreferences.getInstance();
     final key = 'queryRange';
@@ -345,7 +330,7 @@ class _HistoryPageState extends State<HistoryPage> {
           context: context,
           initialDate: fromDate,
           firstDate: DateTime(2020),
-          lastDate: DateTime.now());
+          lastDate: toDate);
       setState(() {
         if (choseDate != null) fromDate = choseDate;
         yMMdFromDate = int.parse(DateFormat('yMMd').format(fromDate));
@@ -413,17 +398,310 @@ class _HistoryPageState extends State<HistoryPage> {
 }
 
 class CreateTaskEntry extends StatefulWidget {
+  List<Task> taskList;
+  CreateTaskEntry(this.taskList);
   @override
   _CreateTaskEntryState createState() => _CreateTaskEntryState();
 }
 
 class _CreateTaskEntryState extends State<CreateTaskEntry> {
+  List<Task> fsTaskList = [];
+  String useruid;
+  DateTime startTime = DateTime.now();
+  DateTime endTime;
+  Duration duration;
+
+  @override
+  void initState() {
+    super.initState();
+    initFunction();
+  }
+
+  initFunction() async {
+    await setUser();
+    await getTaskList();
+  }
+
+  setUser() async {
+    // await FirebaseAuth.instance.currentUser().then((user) {
+    //   useruid = user.uid;
+    // });
+    final prefs = await SharedPreferences.getInstance();
+    useruid = prefs.getString('uid');
+    print("User set: $useruid");
+  }
+
+  getTaskList() async {
+    QuerySnapshot snapshot = await Firestore.instance
+        .collection('users/$useruid/tasks')
+        .getDocuments();
+    var documents = snapshot.documents;
+    // print(Task.fromJson(documents[0]).title);
+    for (int i = 0; i < documents.length; i++) {
+      fsTaskList.add(Task.fromJson(documents[i]));
+    }
+  }
+
+  formatDuration(Duration duration) {
+    return duration.toString().split(':00.000000')[0].padLeft(5, '0');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text("Create Task Entry"),
       ),
+      body: Container(
+        margin: EdgeInsets.all(20),
+        child: Column(
+          children: <Widget>[
+            // First row
+            Container(
+              height: 45,
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Colors.grey),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Container(
+                    width: 100,
+                    child: Text(
+                      "Task",
+                    ),
+                  ),
+                  Container(
+                    decoration:
+                        BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                    child: DropdownButton(
+                      items: widget.taskList.map((task) {
+                        return DropdownMenuItem(
+                          child: Container(
+                            child: Text(task.title),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) {},
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Secon row
+            Container(
+              height: 45,
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Colors.grey),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Container(
+                    width: 100,
+                    child: Text(
+                      "Start Time",
+                    ),
+                  ),
+                  Row(
+                    children: <Widget>[
+                      Container(
+                        child: FlatButton(
+                          child: Text(
+                              DateFormat('dd MMMM yyyy').format(startTime)),
+                          onPressed: () {
+                            chooseDate('left');
+                          },
+                        ),
+                      ),
+                      Container(
+                        child: FlatButton(
+                          child: Text(DateFormat().add_jm().format(startTime)),
+                          onPressed: () {
+                            chooseTime('left');
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Third row > Choose icon
+            Container(
+              height: 45,
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Colors.grey),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Container(
+                    width: 100,
+                    child: Text(
+                      "End Time",
+                    ),
+                  ),
+                  Row(
+                    children: <Widget>[
+                      Container(
+                        child: FlatButton(
+                          child: endTime != null
+                              ? Text(DateFormat('dd MMMM yyyy').format(endTime))
+                              : Container(),
+                          onPressed: () {
+                            chooseDate('right');
+                          },
+                        ),
+                      ),
+                      Container(
+                        child: FlatButton(
+                          child: endTime != null
+                              ? Text(DateFormat().add_jm().format(endTime))
+                              : Container(),
+                          onPressed: () {
+                            chooseTime('right');
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              height: 45,
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Colors.grey),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Container(
+                    width: 100,
+                    child: Text(
+                      "Duration",
+                    ),
+                  ),
+                  Container(
+                    child: FlatButton(
+                      child: duration != null
+                          ? Text(formatDuration(duration))
+                          : Container(),
+                      onPressed: () {
+                        showModalBottomSheet(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return Container(
+                                color: Colors.white,
+                                height: MediaQuery.of(context).size.height / 3,
+                                child: CupertinoTimerPicker(
+                                  mode: CupertinoTimerPickerMode.hm,
+                                  initialTimerDuration:
+                                      Duration(milliseconds: 0),
+                                  minuteInterval: 1,
+                                  secondInterval: 1,
+                                  onTimerDurationChanged:
+                                      (Duration changedtimer) {
+                                    setState(() {
+                                      duration = changedtimer;
+                                      endTime = startTime.add(duration);
+                                    });
+                                  },
+                                ),
+                              );
+                            });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Thourth Row 
+            Container(
+              child: TextField(
+                maxLines: 8,
+                decoration: InputDecoration(
+                  hintText: 'note (optional)',
+                ),
+              ),
+            ),
+            // Action row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: <Widget>[
+                FlatButton(
+                  child: Text("Cancel"),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
+                FlatButton(
+                  child: Text("Save"),
+                  onPressed: () {
+                    
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  chooseDate(String leftOrRight) async {
+    DateTime choseDate = await showDatePicker(
+        context: context,
+        initialDate: startTime,
+        firstDate: DateTime(2020),
+        lastDate: startTime);
+    if (leftOrRight == 'left') {
+      setState(() {
+        if (choseDate != null) {
+          startTime = choseDate;
+        }
+      });
+    } else {
+      setState(() {
+        if (choseDate != null) {
+          endTime = choseDate;
+        }
+      });
+    }
+  }
+
+  chooseTime(String leftOrRight) async {
+    TimeOfDay choseTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    DateTime now = DateTime.now();
+    if (leftOrRight == 'left') {
+      setState(() {
+        if (choseTime != null) {
+          startTime = DateTime(
+              now.year, now.month, now.day, choseTime.hour, choseTime.minute);
+          print(DateFormat().add_jm().format(startTime));
+        }
+      });
+    } else {
+      setState(() {
+        if (choseTime != null) {
+          endTime = DateTime(
+              now.year, now.month, now.day, choseTime.hour, choseTime.minute);
+          print(DateFormat().add_jm().format(endTime));
+          duration = endTime.difference(startTime);
+        }
+      });
+    }
   }
 }
