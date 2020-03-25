@@ -25,6 +25,26 @@ class MyStopwatch {
   static String formatDuration(Duration d) {
     return d.toString().split('.').first.padLeft(8, '0');
   }
+
+  static myfunction(int startedms) {
+    MyStopwatch.stopwatch.start();
+    MyStopwatch.stopwatchRunningNotifier.value = 'true';
+
+    if (MyStopwatch.stopwatchRunningNotifier.value == 'true') {
+      Timer.periodic(Duration(milliseconds: 500), (callback) {
+        MyStopwatch.stopwatchValueNotifier.value = MyStopwatch.formatDuration(
+          Duration(
+              milliseconds:
+                  MyStopwatch.stopwatch.elapsedMilliseconds + startedms),
+        );
+      });
+    }
+    if (MyStopwatch.stopwatchStarted.value == 'false') {
+      MyStopwatch.runningTaskNotifier.value =
+          TaskEntry.newTaskEntry.belongedTask.title;
+    }
+    MyStopwatch.stopwatchStarted.value = 'true';
+  }
 }
 
 class FirstPage extends StatefulWidget {

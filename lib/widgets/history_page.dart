@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:intl/intl.dart';
@@ -655,9 +657,18 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
                 ),
                 FlatButton(
                   child: Text("Save"),
-                  onPressed: () {
-                    saveTaskEntry();
-                    Navigator.pop(context);
+                  onPressed: () async {
+                    if (endTime != null && duration != null) {
+                      saveTaskEntry();
+                      Navigator.pop(context);
+                    } else if (endTime == null && duration == null) {
+                      await readyToStart();
+                      Navigator.pop(context);
+                      Duration difference =
+                          DateTime.now().difference(startTime);
+
+                      MyStopwatch.myfunction(difference.inMilliseconds);
+                    }
                   },
                 ),
               ],
@@ -685,12 +696,27 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
     await TaskEntry.saveToFirestore();
   }
 
+  readyToStart() async {
+    QuerySnapshot snapshot = await Firestore.instance
+        .collection('users/$useruid/tasks')
+        .where('title', isEqualTo: value)
+        .getDocuments();
+
+    var documents = snapshot.documents;
+    Task task = Task.fromJson(documents[0]);
+    TaskEntry.newTaskEntry.id = DateTime.now().toIso8601String();
+    TaskEntry.newTaskEntry.belongedTask = task;
+    TaskEntry.newTaskEntry.belongedTaskId = documents[0].documentID;
+    TaskEntry.newTaskEntry.note = noteController.text;
+    TaskEntry.newTaskEntry.startTime = startTime;
+  }
+
   chooseDate(String leftOrRight) async {
     DateTime choseDate = await showDatePicker(
         context: context,
         initialDate: startTime,
         firstDate: DateTime(2020),
-        lastDate: startTime);
+        lastDate: DateTime.now());
     if (leftOrRight == 'left') {
       setState(() {
         if (choseDate != null) {
