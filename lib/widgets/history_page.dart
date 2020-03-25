@@ -427,9 +427,6 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
   }
 
   setUser() async {
-    // await FirebaseAuth.instance.currentUser().then((user) {
-    //   useruid = user.uid;
-    // });
     final prefs = await SharedPreferences.getInstance();
     useruid = prefs.getString('uid');
     print("User set: $useruid");
@@ -478,21 +475,21 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
                     ),
                   ),
                   Container(
-                    // decoration:
-                    //     BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                    child: DropdownButton(
-                      items: widget.taskList.map((Task task) {
-                        return DropdownMenuItem(
-                          child: Text(task.title),
-                          value: task.title,
-                        );
-                      }).toList(),
-                      value: value,
-                      onChanged: (val) {
-                        setState(() {
-                          value = val;
-                        });
-                      },
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton(
+                        items: widget.taskList.map((Task task) {
+                          return DropdownMenuItem(
+                            child: Text(task.title),
+                            value: task.title,
+                          );
+                        }).toList(),
+                        value: value,
+                        onChanged: (val) {
+                          setState(() {
+                            value = val;
+                          });
+                        },
+                      ),
                     ),
                   ),
                 ],
@@ -710,45 +707,65 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
   }
 
   chooseDate(String leftOrRight) async {
-    DateTime choseDate = await showDatePicker(
-        context: context,
-        initialDate: startTime,
-        firstDate: DateTime(2020),
-        lastDate: DateTime.now());
+    DateTime startT = startTime;
+    DateTime endT = endTime == null ? DateTime.now() : endTime;
+
     if (leftOrRight == 'left') {
+      DateTime choseDate = await showDatePicker(
+          context: context,
+          initialDate: startTime,
+          firstDate: DateTime(2020),
+          lastDate: DateTime(3000));
       setState(() {
         if (choseDate != null) {
-          startTime = choseDate;
+          DateTime newDate = DateTime(choseDate.year, choseDate.month,
+              choseDate.day, startT.hour, startT.minute);
+          startTime = newDate;
         }
       });
     } else {
+      DateTime choseDate = await showDatePicker(
+          context: context,
+          initialDate: endT,
+          firstDate: DateTime(2020),
+          lastDate: DateTime(3000));
       setState(() {
         if (choseDate != null) {
-          endTime = choseDate;
+          DateTime newDate = DateTime(choseDate.year, choseDate.month,
+              choseDate.day, endT.hour, endT.minute);
+          endTime = newDate;
         }
       });
     }
   }
 
   chooseTime(String leftOrRight) async {
-    TimeOfDay choseTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    DateTime now = DateTime.now();
+    DateTime startT = startTime;
+    DateTime endT = endTime == null ? DateTime.now() : endTime;
     if (leftOrRight == 'left') {
+      TimeOfDay choseTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay(hour: startTime.hour, minute: startTime.minute),
+      );
       setState(() {
         if (choseTime != null) {
-          startTime = DateTime(
-              now.year, now.month, now.day, choseTime.hour, choseTime.minute);
+          startTime = DateTime(startT.year, startT.month, startT.day,
+              choseTime.hour, choseTime.minute);
+
           print(DateFormat().add_jm().format(startTime));
         }
       });
     } else {
+      TimeOfDay choseTime = await showTimePicker(
+        context: context,
+        initialTime: endTime != null
+            ? TimeOfDay(hour: endTime.hour, minute: endTime.minute)
+            : TimeOfDay(hour: endT.hour, minute: endT.minute),
+      );
       setState(() {
         if (choseTime != null) {
-          endTime = DateTime(
-              now.year, now.month, now.day, choseTime.hour, choseTime.minute);
+          endTime = DateTime(endT.year, endT.month, endT.day, choseTime.hour,
+              choseTime.minute);
           print(DateFormat().add_jm().format(endTime));
           duration = endTime.difference(startTime);
         }
