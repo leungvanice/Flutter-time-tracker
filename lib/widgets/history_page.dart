@@ -12,8 +12,6 @@ import 'package:time_tracker/models/task.dart';
 import 'package:time_tracker/models/taskEntry.dart';
 import 'package:time_tracker/widgets/first_page.dart';
 
-import '../database_helper.dart';
-
 class HistoryPage extends StatefulWidget {
   @override
   _HistoryPageState createState() => _HistoryPageState();
@@ -400,7 +398,7 @@ class _HistoryPageState extends State<HistoryPage> {
 }
 
 class CreateTaskEntry extends StatefulWidget {
-  List<Task> taskList;
+  final List<Task> taskList;
   CreateTaskEntry(this.taskList);
   @override
   _CreateTaskEntryState createState() => _CreateTaskEntryState();

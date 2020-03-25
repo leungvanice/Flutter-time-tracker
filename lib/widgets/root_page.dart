@@ -1,5 +1,6 @@
 import './first_page.dart';
 import './history_page.dart';
+import './calendar_page.dart';
 
 import 'package:flutter/material.dart';
 
@@ -21,9 +22,7 @@ class _RootPageState extends State<RootPage> {
             FirstPage(
               authNotifier: widget.authNotifier,
             ),
-            Container(
-              color: Colors.orange,
-            ),
+            CalendarPage(),
             HistoryPage(),
             Container(
               color: Colors.red,
