@@ -122,6 +122,9 @@ class _CalendarPageState extends State<CalendarPage> {
                           description: doc['note'] != '' ? doc['note'] : '',
                           start: doc['startTime'].toDate(),
                           end: doc['endTime'].toDate(),
+                          onTap: () {
+                            print("Tapped");
+                          },
                         );
                       }).toList(),
                     );

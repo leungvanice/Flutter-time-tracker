@@ -157,50 +157,67 @@ class _HistoryPageState extends State<HistoryPage> {
                                     int.parse(DateFormat('yMMd').format(
                                             document['endTime'].toDate())) <=
                                         yMMdToDate
-                                ? Container(
-                                    height: 40,
-                                    child: Row(
-                                      children: <Widget>[
-                                        taskIcon(
-                                            document['belongedTask']['icon'],
-                                            document['belongedTask']
-                                                ['colorHex']),
-                                        // text column
-                                        Container(
-                                          width: MediaQuery.of(context)
-                                                  .size
-                                                  .width *
-                                              0.65,
-                                          padding:
-                                              const EdgeInsets.only(left: 10),
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: <Widget>[
-                                              // task title
-                                              Text(
-                                                document['belongedTask']
-                                                    ['title'],
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 16),
-                                              ),
-                                              Text(
-                                                  "${DateFormat().add_jm().format(document['startTime'].toDate())} - ${DateFormat().add_jm().format(document['endTime'].toDate())}",
-                                                  style:
-                                                      TextStyle(fontSize: 12)),
-                                            ],
+                                ? Dismissible(
+                                    key: Key(document.documentID),
+                                    background: Container(
+                                      color: Colors.red,
+                                      alignment: Alignment.centerRight,
+                                      child: Icon(Icons.delete),
+                                    ),
+                                    direction: DismissDirection.endToStart,
+                                    onDismissed: (direction) async {
+                                      await Firestore.instance
+                                          .collection(
+                                              'users/$useruid/taskEntries')
+                                          .document(document.documentID)
+                                          .delete();
+                                    },
+                                    child: Container(
+                                      height: 40,
+                                      child: Row(
+                                        children: <Widget>[
+                                          taskIcon(
+                                              document['belongedTask']['icon'],
+                                              document['belongedTask']
+                                                  ['colorHex']),
+                                          // text column
+                                          Container(
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.65,
+                                            padding:
+                                                const EdgeInsets.only(left: 10),
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: <Widget>[
+                                                // task title
+                                                Text(
+                                                  document['belongedTask']
+                                                      ['title'],
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 16),
+                                                ),
+                                                Text(
+                                                    "${DateFormat().add_jm().format(document['startTime'].toDate())} - ${DateFormat().add_jm().format(document['endTime'].toDate())}",
+                                                    style: TextStyle(
+                                                        fontSize: 12)),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                        // duration display
-                                        Container(
-                                          alignment: Alignment.centerRight,
-                                          child: Text(formatStringDuration(
-                                              document['duration'])),
-                                        ),
-                                      ],
+                                          // duration display
+                                          Container(
+                                            alignment: Alignment.centerRight,
+                                            child: Text(formatStringDuration(
+                                                document['duration'])),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   )
                                 : Container();
