@@ -1,10 +1,13 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_week_view/flutter_week_view.dart';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:time_tracker/models/taskEntry.dart';
+import 'package:time_tracker/widgets/first_page.dart';
 
 class CalendarPage extends StatefulWidget {
   @override
@@ -13,6 +16,7 @@ class CalendarPage extends StatefulWidget {
 
 class _CalendarPageState extends State<CalendarPage> {
   DateTime showDate = DateTime.now();
+
   String useruid;
   void initState() {
     FirebaseAuth.instance.currentUser().then((onUser) {
@@ -20,84 +24,114 @@ class _CalendarPageState extends State<CalendarPage> {
         useruid = onUser.uid;
       });
     });
+
+    if (MyStopwatch.runningTaskNotifier.value == 'true') {
+      Timer.periodic(Duration(minutes: 2), (callback) {
+        FlutterWeekViewEvent event = FlutterWeekViewEvent(
+          backgroundColor:
+              colorFromString(TaskEntry.newTaskEntry.belongedTask.colorHex),
+          description: TaskEntry.newTaskEntry.note ?? '',
+          title: TaskEntry.newTaskEntry.belongedTask.title,
+          start: TaskEntry.newTaskEntry.startTime,
+          end: DateTime.now(),
+        );
+      });
+    }
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Text("Calendar"),
-        ),
-        body: Column(
-          children: <Widget>[
-            // day bar
-            Container(
-              height: 45,
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Colors.grey),
+      appBar: AppBar(
+        title: Text("Calendar"),
+      ),
+      body: Column(
+        children: <Widget>[
+          // day bar
+          Container(
+            height: 45,
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: Colors.grey),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                IconButton(
+                  icon: Icon(Icons.arrow_back_ios),
+                  iconSize: 12,
+                  highlightColor: Colors.transparent,
+                  splashColor: Colors.transparent,
+                  onPressed: () => arrowBtnFunction('left'),
                 ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  IconButton(
-                    icon: Icon(Icons.arrow_back_ios),
-                    iconSize: 12,
-                    highlightColor: Colors.transparent,
-                    splashColor: Colors.transparent,
-                    onPressed: () => arrowBtnFunction('left'),
-                  ),
-                  FlatButton(
-                    child: Text(DateFormat('EEEE, dd MMMM').format(showDate)),
-                    onPressed: selectDate,
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.arrow_forward_ios),
-                    iconSize: 12,
-                    highlightColor: Colors.transparent,
-                    splashColor: Colors.transparent,
-                    onPressed: () => arrowBtnFunction('right'),
-                  ),
-                ],
-              ),
+                FlatButton(
+                  child: Text(DateFormat('EEEE, dd MMMM').format(showDate)),
+                  onPressed: selectDate,
+                ),
+                IconButton(
+                  icon: Icon(Icons.arrow_forward_ios),
+                  iconSize: 12,
+                  highlightColor: Colors.transparent,
+                  splashColor: Colors.transparent,
+                  onPressed: () => arrowBtnFunction('right'),
+                ),
+              ],
             ),
-            Expanded(
-              child: StreamBuilder(
-                stream: Firestore.instance
-                    .collection('users/$useruid/taskEntries')
-                    .snapshots(),
-                builder: (BuildContext context,
-                    AsyncSnapshot<QuerySnapshot> snapshot) {
-                  if (snapshot.hasError) {
-                    return Text("Error: ${snapshot.error}");
-                  }
-                  switch (snapshot.connectionState) {
-                    case ConnectionState.waiting:
-                      return Container();
-                    default:
-                      return DayView(
-                        date: showDate,
-                        dayBarHeight: 0,
-                        events:
-                            snapshot.data.documents.map((DocumentSnapshot doc) {
-                          return FlutterWeekViewEvent(
-                            backgroundColor: colorFromString(
-                                doc['belongedTask']['colorHex']),
-                            title: doc['belongedTask']['title'],
-                            description: doc['note'] != '' ? doc['note'] : '',
-                            start: doc['startTime'].toDate(),
-                            end: doc['endTime'].toDate(),
-                          );
-                        }).toList(),
-                      );
-                  }
-                },
-              ),
+          ),
+          Expanded(
+            child: StreamBuilder(
+              stream: Firestore.instance
+                  .collection('users/$useruid/taskEntries')
+                  .snapshots(),
+              builder: (BuildContext context,
+                  AsyncSnapshot<QuerySnapshot> snapshot) {
+                if (snapshot.hasError) {
+                  return Text("Error: ${snapshot.error}");
+                }
+                switch (snapshot.connectionState) {
+                  case ConnectionState.waiting:
+                    return Container();
+                  default:
+                    return DayView(
+                      date: showDate,
+                      dayBarHeight: 0,
+                      hoursColumnBackgroundColor:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey[800]
+                              : Colors.white,
+                      hoursColumnTextStyle: TextStyle(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey
+                            : Colors.grey[800],
+                      ),
+                      eventsColumnBackgroundPainter:
+                          EventsColumnBackgroundPainter(
+                        backgroundColor:
+                            Theme.of(context).brightness == Brightness.dark
+                                ? Colors.grey[800]
+                                : Colors.white,
+                      ),
+                      events:
+                          snapshot.data.documents.map((DocumentSnapshot doc) {
+                        return FlutterWeekViewEvent(
+                          backgroundColor:
+                              colorFromString(doc['belongedTask']['colorHex']),
+                          title: doc['belongedTask']['title'],
+                          description: doc['note'] != '' ? doc['note'] : '',
+                          start: doc['startTime'].toDate(),
+                          end: doc['endTime'].toDate(),
+                        );
+                      }).toList(),
+                    );
+                }
+              },
             ),
-          ],
-        ));
+          ),
+        ],
+      ),
+    );
   }
 
   Color colorFromString(String colorString) {
