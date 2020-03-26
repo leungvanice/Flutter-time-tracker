@@ -1,13 +1,9 @@
-import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_week_view/flutter_week_view.dart';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:time_tracker/models/taskEntry.dart';
-import 'package:time_tracker/widgets/first_page.dart';
 
 class CalendarPage extends StatefulWidget {
   @override
@@ -16,6 +12,7 @@ class CalendarPage extends StatefulWidget {
 
 class _CalendarPageState extends State<CalendarPage> {
   DateTime showDate = DateTime.now();
+  List<FlutterWeekViewEvent> runningList = [];
 
   String useruid;
   void initState() {
@@ -25,18 +22,6 @@ class _CalendarPageState extends State<CalendarPage> {
       });
     });
 
-    if (MyStopwatch.runningTaskNotifier.value == 'true') {
-      Timer.periodic(Duration(minutes: 2), (callback) {
-        FlutterWeekViewEvent event = FlutterWeekViewEvent(
-          backgroundColor:
-              colorFromString(TaskEntry.newTaskEntry.belongedTask.colorHex),
-          description: TaskEntry.newTaskEntry.note ?? '',
-          title: TaskEntry.newTaskEntry.belongedTask.title,
-          start: TaskEntry.newTaskEntry.startTime,
-          end: DateTime.now(),
-        );
-      });
-    }
     super.initState();
   }
 
@@ -95,39 +80,38 @@ class _CalendarPageState extends State<CalendarPage> {
                     return Container();
                   default:
                     return DayView(
-                      date: showDate,
-                      dayBarHeight: 0,
-                      hoursColumnBackgroundColor:
-                          Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey[800]
-                              : Colors.white,
-                      hoursColumnTextStyle: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey
-                            : Colors.grey[800],
-                      ),
-                      eventsColumnBackgroundPainter:
-                          EventsColumnBackgroundPainter(
-                        backgroundColor:
+                        date: showDate,
+                        dayBarHeight: 0,
+                        hoursColumnBackgroundColor:
                             Theme.of(context).brightness == Brightness.dark
                                 ? Colors.grey[800]
                                 : Colors.white,
-                      ),
-                      events:
-                          snapshot.data.documents.map((DocumentSnapshot doc) {
-                        return FlutterWeekViewEvent(
+                        hoursColumnTextStyle: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey
+                              : Colors.grey[800],
+                        ),
+                        eventsColumnBackgroundPainter:
+                            EventsColumnBackgroundPainter(
                           backgroundColor:
-                              colorFromString(doc['belongedTask']['colorHex']),
-                          title: doc['belongedTask']['title'],
-                          description: doc['note'] != '' ? doc['note'] : '',
-                          start: doc['startTime'].toDate(),
-                          end: doc['endTime'].toDate(),
-                          onTap: () {
-                            print("Tapped");
-                          },
-                        );
-                      }).toList(),
-                    );
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.grey[800]
+                                  : Colors.white,
+                        ),
+                        events:
+                            snapshot.data.documents.map((DocumentSnapshot doc) {
+                          return FlutterWeekViewEvent(
+                            backgroundColor: colorFromString(
+                                doc['belongedTask']['colorHex']),
+                            title: doc['belongedTask']['title'],
+                            description: doc['note'] != '' ? doc['note'] : '',
+                            start: doc['startTime'].toDate(),
+                            end: doc['endTime'].toDate(),
+                            onTap: () {
+                              print("Tapped");
+                            },
+                          );
+                        }).toList());
                 }
               },
             ),

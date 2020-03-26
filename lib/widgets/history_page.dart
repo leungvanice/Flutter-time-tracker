@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:time_tracker/models/task.dart';
 import 'package:time_tracker/models/taskEntry.dart';
 import 'package:time_tracker/widgets/first_page.dart';
+import 'package:time_tracker/widgets/taskDetail_page.dart';
 
 class HistoryPage extends StatefulWidget {
   @override
@@ -172,51 +173,86 @@ class _HistoryPageState extends State<HistoryPage> {
                                           .document(document.documentID)
                                           .delete();
                                     },
-                                    child: Container(
-                                      height: 40,
-                                      child: Row(
-                                        children: <Widget>[
-                                          taskIcon(
-                                              document['belongedTask']['icon'],
-                                              document['belongedTask']
-                                                  ['colorHex']),
-                                          // text column
-                                          Container(
-                                            width: MediaQuery.of(context)
-                                                    .size
-                                                    .width *
-                                                0.65,
-                                            padding:
-                                                const EdgeInsets.only(left: 10),
-                                            child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: <Widget>[
-                                                // task title
-                                                Text(
-                                                  document['belongedTask']
-                                                      ['title'],
-                                                  style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 16),
-                                                ),
-                                                Text(
-                                                    "${DateFormat().add_jm().format(document['startTime'].toDate())} - ${DateFormat().add_jm().format(document['endTime'].toDate())}",
-                                                    style: TextStyle(
-                                                        fontSize: 12)),
-                                              ],
+                                    child: InkWell(
+                                      onTap: () async {
+                                        List<Task> taskList = [];
+                                        QuerySnapshot snapshot = await Firestore
+                                            .instance
+                                            .collection('users/$useruid/tasks')
+                                            .getDocuments();
+                                        var documents = snapshot.documents;
+                                        for (int i = 0;
+                                            i < documents.length;
+                                            i++) {
+                                          Task task =
+                                              Task.fromJson(documents[i]);
+                                          taskList.add(task);
+                                        }
+                                        print(
+                                            document['belongedTask']['title']);
+                                        TaskEntry taskEntry =
+                                            TaskEntry.fromJson(document);
+                                        print(taskEntry.belongedTask == null);
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                TaskDetailPage(
+                                              taskEntry:
+                                                  TaskEntry.fromJson(document),
+                                              docId: document.documentID,
+                                              taskList: taskList,
                                             ),
                                           ),
-                                          // duration display
-                                          Container(
-                                            alignment: Alignment.centerRight,
-                                            child: Text(formatStringDuration(
-                                                document['duration'])),
-                                          ),
-                                        ],
+                                        );
+                                      },
+                                      child: Container(
+                                        height: 40,
+                                        child: Row(
+                                          children: <Widget>[
+                                            taskIcon(
+                                                document['belongedTask']
+                                                    ['icon'],
+                                                document['belongedTask']
+                                                    ['colorHex']),
+                                            // text column
+                                            Container(
+                                              width: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.65,
+                                              padding: const EdgeInsets.only(
+                                                  left: 10),
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: <Widget>[
+                                                  // task title
+                                                  Text(
+                                                    document['belongedTask']
+                                                        ['title'],
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 16),
+                                                  ),
+                                                  Text(
+                                                      "${DateFormat().add_jm().format(document['startTime'].toDate())} - ${DateFormat().add_jm().format(document['endTime'].toDate())}",
+                                                      style: TextStyle(
+                                                          fontSize: 12)),
+                                                ],
+                                              ),
+                                            ),
+                                            // duration display
+                                            Container(
+                                              alignment: Alignment.centerRight,
+                                              child: Text(formatStringDuration(
+                                                  document['duration'])),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   )
@@ -266,57 +302,76 @@ class _HistoryPageState extends State<HistoryPage> {
       valueListenable: MyStopwatch.stopwatchRunningNotifier,
       builder: (context, value, child) {
         return MyStopwatch.stopwatchRunningNotifier.value == 'true'
-            ? Container(
-                margin: EdgeInsets.only(top: 10, left: 20, right: 20),
-                height: 40,
-                child: Row(
-                  children: <Widget>[
-                    taskIcon(
-                      TaskEntry.newTaskEntry.belongedTask.icon,
-                      TaskEntry.newTaskEntry.belongedTask.colorHex,
-                    ),
-                    // text column
-                    Container(
-                      width: MediaQuery.of(context).size.width * 0.65,
-                      padding: const EdgeInsets.only(left: 10),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          // task title
-                          Text(
-                            MyStopwatch.runningTaskNotifier.value,
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: colorFromString(TaskEntry
-                                    .newTaskEntry.belongedTask.colorHex)),
-                          ),
-                          Text(
-                              "${DateFormat().add_jm().format(TaskEntry.newTaskEntry.startTime)} - ",
+            ? InkWell(
+                onTap: () async {
+                  List<Task> taskList = [];
+                  QuerySnapshot snapshot = await Firestore.instance
+                      .collection('users/$useruid/tasks')
+                      .getDocuments();
+                  var documents = snapshot.documents;
+                  for (int i = 0; i < documents.length; i++) {
+                    Task task = Task.fromJson(documents[i]);
+                    taskList.add(task);
+                  }
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => TaskDetailPage(
+                              taskEntry: TaskEntry.newTaskEntry,
+                              taskList: taskList)));
+                },
+                child: Container(
+                  margin: EdgeInsets.only(top: 10, left: 20, right: 20),
+                  height: 40,
+                  child: Row(
+                    children: <Widget>[
+                      taskIcon(
+                        TaskEntry.newTaskEntry.belongedTask.icon,
+                        TaskEntry.newTaskEntry.belongedTask.colorHex,
+                      ),
+                      // text column
+                      Container(
+                        width: MediaQuery.of(context).size.width * 0.65,
+                        padding: const EdgeInsets.only(left: 10),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            // task title
+                            Text(
+                              MyStopwatch.runningTaskNotifier.value,
                               style: TextStyle(
-                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                   color: colorFromString(TaskEntry
-                                      .newTaskEntry.belongedTask.colorHex))),
-                        ],
+                                      .newTaskEntry.belongedTask.colorHex)),
+                            ),
+                            Text(
+                                "${DateFormat().add_jm().format(TaskEntry.newTaskEntry.startTime)} - ",
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: colorFromString(TaskEntry
+                                        .newTaskEntry.belongedTask.colorHex))),
+                          ],
+                        ),
                       ),
-                    ),
-                    // duration display
-                    Container(
-                      alignment: Alignment.centerRight,
-                      child: ValueListenableBuilder(
-                        valueListenable: MyStopwatch.stopwatchValueNotifier,
-                        builder: (context, value, child) {
-                          return Text(
-                            MyStopwatch.stopwatchValueNotifier.value,
-                            style: TextStyle(
-                                color: colorFromString(TaskEntry
-                                    .newTaskEntry.belongedTask.colorHex)),
-                          );
-                        },
+                      // duration display
+                      Container(
+                        alignment: Alignment.centerRight,
+                        child: ValueListenableBuilder(
+                          valueListenable: MyStopwatch.stopwatchValueNotifier,
+                          builder: (context, value, child) {
+                            return Text(
+                              MyStopwatch.stopwatchValueNotifier.value,
+                              style: TextStyle(
+                                  color: colorFromString(TaskEntry
+                                      .newTaskEntry.belongedTask.colorHex)),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               )
             : Container(
@@ -454,7 +509,6 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
         .collection('users/$useruid/tasks')
         .getDocuments();
     var documents = snapshot.documents;
-    // print(Task.fromJson(documents[0]).title);
     for (int i = 0; i < documents.length; i++) {
       fsTaskList.add(Task.fromJson(documents[i]));
     }
@@ -770,6 +824,7 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
               choseTime.hour, choseTime.minute);
 
           print(DateFormat().add_jm().format(startTime));
+          duration = endTime.difference(startTime);
         }
       });
     } else {

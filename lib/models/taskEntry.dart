@@ -26,6 +26,20 @@ class TaskEntry {
       this.belongedTaskName});
 
   static TaskEntry newTaskEntry = TaskEntry();
+  Duration parseDuration(String s) {
+    int hours = 0;
+    int minutes = 0;
+    int micros;
+    List<String> parts = s.split(':');
+    if (parts.length > 2) {
+      hours = int.parse(parts[parts.length - 3]);
+    }
+    if (parts.length > 1) {
+      minutes = int.parse(parts[parts.length - 2]);
+    }
+    micros = (double.parse(parts[parts.length - 1]) * 1000000).round();
+    return Duration(hours: hours, minutes: minutes, microseconds: micros);
+  }
 
   toJson() {
     return {
@@ -52,11 +66,11 @@ class TaskEntry {
   TaskEntry.fromJson(DocumentSnapshot map) {
     id = map['id'];
     belongedTaskId = map['belongedTaskId'];
-    belongedTask = map['task'];
+    belongedTask = Task.fromMap(map['belongedTask']);
     note = map['note'];
-    startTime = map['startTime'];
-    endTime = map['endTime'];
-    duration = map['duration'];
+    startTime = map['startTime'].toDate();
+    endTime = map['endTime'].toDate();
+    duration = parseDuration(map['duration']);
   }
 
   factory TaskEntry.fromMap(Map<String, dynamic> map) {
@@ -82,6 +96,7 @@ class TaskEntry {
       startTime: DateTime.parse(map['startTime']),
       endTime: DateTime.parse(map['endTime']),
       duration: parseDuration(map['duration']),
+      belongedTask: map['belongedTask'],
     );
   }
 
