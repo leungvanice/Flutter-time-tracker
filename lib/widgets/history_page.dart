@@ -313,6 +313,13 @@ class _HistoryPageState extends State<HistoryPage> {
                     Task task = Task.fromJson(documents[i]);
                     taskList.add(task);
                   }
+                  // clear new Task Entry
+                  if (TaskEntry.newTaskEntry.endTime != null) {
+                    TaskEntry.newTaskEntry.endTime = null;
+                  }
+                  if (TaskEntry.newTaskEntry.duration != null) {
+                    TaskEntry.newTaskEntry.duration = null;
+                  }
                   Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -465,7 +472,10 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   formatStringDuration(String d) {
-    return d.split('.').first.padLeft(8, '0');
+    String hhmmss = MyStopwatch.formatDuration(parseDuration(d));
+    List list = hhmmss.split(':');
+    String hhmm = list[0] + ':' + list[1];
+    return hhmm;
   }
 }
 
@@ -732,8 +742,9 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
                       Navigator.pop(context);
                       Duration difference =
                           DateTime.now().difference(startTime);
-
+                      
                       MyStopwatch.myfunction(difference.inMilliseconds);
+                      // print("Please fill in all the data");
                     }
                   },
                 ),
@@ -824,7 +835,9 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
               choseTime.hour, choseTime.minute);
 
           print(DateFormat().add_jm().format(startTime));
-          duration = endTime.difference(startTime);
+          if (endTime != null) {
+            duration = endTime.difference(startTime);
+          }
         }
       });
     } else {

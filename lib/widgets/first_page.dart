@@ -18,7 +18,8 @@ import 'package:flutter/material.dart';
 
 class MyStopwatch {
   static Stopwatch stopwatch = Stopwatch();
-  static ValueNotifier stopwatchValueNotifier = ValueNotifier('00:00:00');
+
+  static ValueNotifier stopwatchValueNotifier = ValueNotifier('00:00');
   static ValueNotifier stopwatchStarted = ValueNotifier('false');
   static ValueNotifier stopwatchRunningNotifier = ValueNotifier('false');
   static ValueNotifier runningTaskNotifier = ValueNotifier('');
@@ -26,13 +27,21 @@ class MyStopwatch {
     return d.toString().split('.').first.padLeft(8, '0');
   }
 
+  static String getHHMM(Duration duration) {
+    String hhmmss = duration.toString().split('.').first.padLeft(8, '0');
+    List list = hhmmss.split(':');
+    String hhmm = list[0] + ':' + list[1];
+    return hhmm;
+  }
+
   static myfunction(int startedms) {
     MyStopwatch.stopwatch.start();
     MyStopwatch.stopwatchRunningNotifier.value = 'true';
 
     if (MyStopwatch.stopwatchRunningNotifier.value == 'true') {
-      Timer.periodic(Duration(milliseconds: 500), (callback) {
-        MyStopwatch.stopwatchValueNotifier.value = MyStopwatch.formatDuration(
+      MyStopwatch.stopwatchValueNotifier.value = MyStopwatch.getHHMM(Duration(milliseconds: startedms));
+      Timer.periodic(Duration(minutes: 1), (timer) {
+        MyStopwatch.stopwatchValueNotifier.value = MyStopwatch.getHHMM(
           Duration(
               milliseconds:
                   MyStopwatch.stopwatch.elapsedMilliseconds + startedms),
@@ -270,9 +279,11 @@ class _FirstPageState extends State<FirstPage> {
 
     if (MyStopwatch.stopwatchRunningNotifier.value == 'true') {
       Timer.periodic(Duration(seconds: 1), (callback) {
-        MyStopwatch.stopwatchValueNotifier.value = MyStopwatch.formatDuration(
-          Duration(milliseconds: MyStopwatch.stopwatch.elapsedMilliseconds),
-        );
+        // MyStopwatch.stopwatchValueNotifier.value = MyStopwatch.formatDuration(
+        //   Duration(milliseconds: MyStopwatch.stopwatch.elapsedMilliseconds),
+        // );
+        MyStopwatch.stopwatchValueNotifier.value =
+            MyStopwatch.getHHMM(MyStopwatch.stopwatch.elapsed);
       });
     }
     if (MyStopwatch.stopwatchStarted.value == 'false') {

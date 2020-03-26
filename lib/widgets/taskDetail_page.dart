@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -156,13 +157,13 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                             Container(
                               child: FlatButton(
                                 child: Text(''),
-                                onPressed: () {},
+                                onPressed: () => chooseDate('right'),
                               ),
                             ),
                             Container(
                               child: FlatButton(
                                 child: Text(''),
-                                onPressed: () {},
+                                onPressed: () => chooseTime('right'),
                               ),
                             ),
                           ],
@@ -248,9 +249,39 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                 FlatButton(
                   child: Text("Save"),
                   onPressed: () async {
-                    await setTask();
-                    await saveBtnFunc();
-                    Navigator.pop(context);
+                    if (widget.taskEntry.endTime != null &&
+                        widget.taskEntry.duration != null) {
+                      await setTask();
+                      await saveBtnFunc();
+                      Navigator.pop(context);
+                    } else {
+                      FirebaseUser user =
+                          await FirebaseAuth.instance.currentUser();
+                      String useruid = user.uid;
+                      QuerySnapshot snapshot = await Firestore.instance
+                          .collection('users/$useruid/tasks')
+                          .where('title', isEqualTo: value)
+                          .getDocuments();
+                      var documents = snapshot.documents;
+                      int elapsedms = DateTime.now()
+                          .difference(TaskEntry.newTaskEntry.startTime)
+                          .inMilliseconds;
+                      // set data
+                      MyStopwatch.runningTaskNotifier.value = value;
+                      TaskEntry.newTaskEntry.belongedTask =
+                          Task.fromJson(documents[0]);
+                      TaskEntry.newTaskEntry.belongedTaskId =
+                          documents[0].documentID;
+                      TaskEntry.newTaskEntry.id =
+                          DateTime.now().toIso8601String();
+                      MyStopwatch.stopwatchValueNotifier.value = '';
+                      // stopwatch
+                      MyStopwatch.stopwatch.stop();
+                      MyStopwatch.stopwatch.reset();
+
+                      MyStopwatch.myfunction(elapsedms);
+                      Navigator.pop(context);
+                    }
                   },
                 ),
               ],
@@ -314,8 +345,10 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
               startT.day, choseTime.hour, choseTime.minute);
 
           print(DateFormat().add_jm().format(widget.taskEntry.startTime));
-          widget.taskEntry.duration =
-              widget.taskEntry.endTime.difference(widget.taskEntry.startTime);
+          if (widget.taskEntry.endTime != null) {
+            widget.taskEntry.duration =
+                widget.taskEntry.endTime.difference(widget.taskEntry.startTime);
+          }
         }
       });
     } else {
