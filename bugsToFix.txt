@@ -1,2 +1,0 @@
-- user can choose time that is earlier than the end time 
-    - it may cause error of duration 

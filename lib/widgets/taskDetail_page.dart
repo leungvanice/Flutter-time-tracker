@@ -10,9 +10,9 @@ import 'package:time_tracker/models/taskEntry.dart';
 import 'first_page.dart';
 
 class TaskDetailPage extends StatefulWidget {
-  TaskEntry taskEntry;
+  final TaskEntry taskEntry;
   final List<Task> taskList;
-  String docId;
+  final String docId;
   TaskDetailPage({this.taskEntry, this.taskList, this.docId});
   @override
   _TaskDetailPageState createState() => _TaskDetailPageState();

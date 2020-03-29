@@ -16,13 +16,12 @@ class _CalendarPageState extends State<CalendarPage> {
 
   String useruid;
   void initState() {
+    super.initState();
     FirebaseAuth.instance.currentUser().then((onUser) {
       setState(() {
         useruid = onUser.uid;
       });
     });
-
-    super.initState();
   }
 
   @override

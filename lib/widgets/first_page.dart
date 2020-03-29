@@ -39,7 +39,8 @@ class MyStopwatch {
     MyStopwatch.stopwatchRunningNotifier.value = 'true';
 
     if (MyStopwatch.stopwatchRunningNotifier.value == 'true') {
-      MyStopwatch.stopwatchValueNotifier.value = MyStopwatch.getHHMM(Duration(milliseconds: startedms));
+      MyStopwatch.stopwatchValueNotifier.value =
+          MyStopwatch.getHHMM(Duration(milliseconds: startedms));
       Timer.periodic(Duration(minutes: 1), (timer) {
         MyStopwatch.stopwatchValueNotifier.value = MyStopwatch.getHHMM(
           Duration(
@@ -53,6 +54,13 @@ class MyStopwatch {
           TaskEntry.newTaskEntry.belongedTask.title;
     }
     MyStopwatch.stopwatchStarted.value = 'true';
+  }
+
+  static Color colorFromString(String colorString) {
+    String valueString = colorString.split('(0x')[1].split(')')[0];
+    int value = int.parse(valueString, radix: 16);
+    Color color = Color(value);
+    return color;
   }
 }
 
@@ -70,6 +78,7 @@ class _FirstPageState extends State<FirstPage> {
   final db = Firestore.instance;
 
   void initState() {
+    super.initState();
     FirebaseAuth.instance.currentUser().then((user) {
       setState(() {
         if (user != null) {
@@ -78,23 +87,6 @@ class _FirstPageState extends State<FirstPage> {
         }
       });
     });
-    super.initState();
-  }
-
-  getTaskFromFS() async {
-    List<Task> taskList = [];
-
-    QuerySnapshot snapshot = await Firestore.instance
-        .collection('users/$useruid/tasks')
-        .orderBy('title')
-        .getDocuments();
-
-    var documents = snapshot.documents;
-    for (int i = 0; i < taskList.length; i++) {
-      Task task = Task.fromJson(documents[i]);
-      taskList.add(task);
-    }
-    print(taskList);
   }
 
   @override

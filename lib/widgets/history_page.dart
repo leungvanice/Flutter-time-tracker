@@ -50,7 +50,6 @@ class _HistoryPageState extends State<HistoryPage> {
 
   void initState() {
     super.initState();
-
     setDate();
     getUser();
   }
@@ -742,7 +741,7 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
                       Navigator.pop(context);
                       Duration difference =
                           DateTime.now().difference(startTime);
-                      
+
                       MyStopwatch.myfunction(difference.inMilliseconds);
                       // print("Please fill in all the data");
                     }
