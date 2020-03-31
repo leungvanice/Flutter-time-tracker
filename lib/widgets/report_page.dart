@@ -1,12 +1,11 @@
-import 'package:charts_flutter/flutter.dart' as charts;
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../models/taskEntry.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:time_tracker/models/taskEntry.dart';
-import 'package:time_tracker/widgets/first_page.dart';
 
 class ReportPage extends StatefulWidget {
   @override
@@ -15,12 +14,14 @@ class ReportPage extends StatefulWidget {
 
 class _ReportPageState extends State<ReportPage> {
   String useruid;
-  final List<charts.Series<TaskEntryEveryday, String>> seriesList = [];
-
   @override
   void initState() {
     super.initState();
-    getUser();
+    FirebaseAuth.instance.currentUser().then((onUser) {
+      setState(() {
+        useruid = onUser.uid;
+      });
+    });
   }
 
   @override
@@ -29,7 +30,7 @@ class _ReportPageState extends State<ReportPage> {
       appBar: AppBar(
         title: Text("Report"),
       ),
-      body: StreamBuilder(
+      body: StreamBuilder<QuerySnapshot>(
         stream: Firestore.instance
             .collection('users/$useruid/taskEntries')
             .snapshots(),
@@ -45,101 +46,120 @@ class _ReportPageState extends State<ReportPage> {
               snapshot.data.documents.forEach((doc) {
                 taskEntries.add(TaskEntry.fromJson(doc));
               });
-              return buildChart(context, taskEntries);
+              return myBarChart(taskEntries);
           }
         },
       ),
     );
   }
 
-  Widget buildChart(BuildContext context, List<TaskEntry> taskEntries) {
-    List taskList = []; // have duplicate data
-    List detailList = []; // hold detail
-    Map mapList =
-        Map(); // {Programming: [detail, detail], Badminton: [detail, detail]}
-    int counter = 0; // to get the hour in hoursList
-
-    // todo: add up task entries hours and put then into different task
+  Widget myBarChart(List<TaskEntry> taskEntries) {
+    int yMMdSmallestDate;
+    int yMMdBiggestDate;
+    List<Map> dateRangeList;
+    List<BarChartGroupData> barChartGroupDataList = [];
+    int totalDays;
+    // set smallest date and biggest date
     taskEntries.forEach((entry) {
-      Map detail = {
-        'Date': DateFormat('dd/mm/yyyy').format(entry.endTime),
-        'Hours': entry.duration.inMinutes / 60,
-        'Color': entry.belongedTask.colorHex,
-      };
-      detailList.add(detail);
-      Map taskMap = {
-        entry.belongedTask.title: [detail]
-      };
-      taskList.add(taskMap);
+      int yMMdEndTime = int.parse(DateFormat('yMMd').format(entry.endTime));
+      if (yMMdSmallestDate == null || yMMdBiggestDate == null) {
+        yMMdSmallestDate = yMMdEndTime;
+        yMMdBiggestDate = yMMdEndTime;
+      } else {
+        if (yMMdEndTime < yMMdSmallestDate) {
+          yMMdSmallestDate = yMMdEndTime;
+        } else if (yMMdEndTime > yMMdBiggestDate) {
+          yMMdBiggestDate = yMMdEndTime;
+        }
+      }
     });
-    taskList.forEach((taskMap) {
-      for (var key in taskMap.keys) {
-        if (!mapList.containsKey(key)) {
-          mapList[key] = taskMap.values;
-        } else {
-          for (var list in mapList[key]) {
-            list.add(detailList[counter]);
+
+    // create date list (bar chart bottom titles)
+    totalDays = yMMdBiggestDate - yMMdSmallestDate + 1;
+    dateRangeList = List.generate(totalDays, (i) {
+      DateTime smallestDate = DateTime.parse(yMMdSmallestDate.toString());
+      DateTime date = smallestDate.add(Duration(days: i));
+      String formattedDate = DateFormat('dd/MM/yyyy').format(date);
+      Map map = {formattedDate: []};
+      return map;
+    });
+
+    // separate task entry according to date
+    for (var map in dateRangeList) {
+      for (var date in map.keys) {
+        for (TaskEntry entry in taskEntries) {
+          String formattedDate = DateFormat('dd/MM/yyyy').format(entry.endTime);
+          if (formattedDate == date) {
+            for (var list in map.values) {
+              list.add(entry);
+            }
           }
         }
       }
-      counter++;
-    });
-
-    for (var taskTitle in mapList.keys) {
-      List<TaskEntryEveryday> list = [];
-      // print(taskTitle);
-      // create task data list using TaskEntryEveryday class
-      for (var detailList in mapList[taskTitle]) {
-        detailList.forEach((detail) {
-          TaskEntryEveryday taskEntryEveryday = TaskEntryEveryday(
-              date: detail['Date'],
-              hours: detail['Hours'],
-              color: MyStopwatch.colorFromString(detail['Color']));
-          list.add(taskEntryEveryday);
-        });
-      }
-
-      // add series to seriesList
-      seriesList.add(charts.Series<TaskEntryEveryday, String>(
-        id: taskTitle,
-        domainFn: (TaskEntryEveryday data, _) => data.date,
-        measureFn: (TaskEntryEveryday data, _) => data.hours,
-        colorFn: (TaskEntryEveryday data, _) =>
-            charts.ColorUtil.fromDartColor(data.color),
-        data: list,
-      ));
     }
 
-    // build different data list using task
+    // add up task entries belonged to same task in single day
+    dateRangeList.forEach((map) {
+      for (List entryList in map.values) {
+        List taskList = [];
+        List toAdd = [];
+        List addedTaskNameList = [];
 
-    // create charts.Series and add to the seriesList
-    // build chart
-    return Container(
-      child: SizedBox(
-        height: 300,
-        child: charts.BarChart(
-          seriesList,
-          barGroupingType: charts.BarGroupingType.stacked,
-          animate: true,
-          animationDuration: Duration(seconds: 1),
-        ),
-      ),
-    );
-  }
-
-  getUser() {
-    FirebaseAuth.instance.currentUser().then((user) {
-      setState(() {
-        useruid = user.uid;
-      });
+        entryList.forEach((entry) {
+          String taskName = entry.belongedTask.title;
+          double hours = entry.duration.inMinutes / 60;
+          Map taskMap = {taskName: hours};
+          if (taskList.isEmpty) {
+            taskList.add(taskMap);
+          } else {
+            for (var map in taskList) {
+              for (var existedTask in map.keys) {
+                if (taskName != existedTask &&
+                    !addedTaskNameList.contains(taskName)) {
+                  toAdd.add(taskMap);
+                  addedTaskNameList.add(taskName);
+                } else {
+                  for (double oldHour in map.values) {
+                    double newHour = oldHour + hours;
+                    if (taskName == existedTask) {
+                      map[existedTask] = newHour;
+                    } else if (addedTaskNameList.contains(taskName)) {
+                      toAdd.forEach((map) {
+                        for (var addedTask in map.keys) {
+                          for (double oldHour in map.values) {
+                            double newHour = oldHour + hours;
+                            map[addedTask] = newHour;
+                          }
+                        }
+                      });
+                    }
+                  }
+                }
+              }
+            }
+          }
+        });
+        // combine the lists
+        taskList.add(toAdd);
+      }
     });
+
+    // build barChartGroupDataList
+    // barChartGroupDataList = List.generate(dateRangeList.length, (i) {
+    //   //  create BarChartRodStackItem List > pass to rodStackItem parameter
+    //   List<BarChartRodStackItem> stackDataList = [];
+    //   for (List entryList in dateRangeList[i].values) {
+    //     // BarChartRodStackItem item = BarChartRodStackItem();
+
+    //   }
+
+    //   return BarChartGroupData(
+    //     x: i,
+    //     // barRods: dateRangeList[i].
+    //   );
+    // });
+    // print(dateRangeList[0].values);
+
+    return Container();
   }
-}
-
-class TaskEntryEveryday {
-  final String date;
-  final double hours;
-  final Color color;
-
-  TaskEntryEveryday({this.date, this.hours, this.color});
 }
