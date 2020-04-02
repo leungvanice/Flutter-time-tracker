@@ -222,9 +222,21 @@ class _HistoryPageState extends State<HistoryPage> {
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 16),
                                             ),
-                                            Text(
-                                                "${DateFormat().add_jm().format(document['startTime'].toDate())} - ${DateFormat().add_jm().format(document['endTime'].toDate())}",
-                                                style: TextStyle(fontSize: 12)),
+                                            Row(
+                                              children: <Widget>[
+                                                Text(DateFormat('dd/MM/yyyy')
+                                                    .format(document['endTime']
+                                                        .toDate())),
+                                                Padding(
+                                                  padding:
+                                                      EdgeInsets.only(left: 20),
+                                                ),
+                                                Text(
+                                                    "${DateFormat().add_jm().format(document['startTime'].toDate())} - ${DateFormat().add_jm().format(document['endTime'].toDate())}",
+                                                    style: TextStyle(
+                                                        fontSize: 12)),
+                                              ],
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -239,7 +251,6 @@ class _HistoryPageState extends State<HistoryPage> {
                                 ),
                               ),
                             );
-                            // : Container(child: Text("No data"));
                           },
                         ).toList(),
                       );
@@ -841,3 +852,5 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
     }
   }
 }
+
+
