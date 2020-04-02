@@ -255,7 +255,7 @@ class _HistoryPageState extends State<HistoryPage> {
                                       ),
                                     ),
                                   )
-                                : Container();
+                                : Container(child: Text("No data"));
                           },
                         ).toList(),
                       );

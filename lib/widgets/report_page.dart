@@ -99,7 +99,9 @@ class _ReportPageState extends State<ReportPage> {
     }
 
     // add up task entries belonged to same task in single day
+    int count = 0;
     dateRangeList.forEach((map) {
+      List keyList = map.keys.toList();
       for (List entryList in map.values) {
         List taskList = [];
         List toAdd = [];
@@ -141,8 +143,10 @@ class _ReportPageState extends State<ReportPage> {
         });
         // combine the lists
         taskList.add(toAdd);
+        dateRangeList[count] = {keyList[count]: taskList};
       }
     });
+    print(dateRangeList);
 
     // build barChartGroupDataList
     // barChartGroupDataList = List.generate(dateRangeList.length, (i) {
