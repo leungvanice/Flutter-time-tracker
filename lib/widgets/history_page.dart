@@ -123,7 +123,7 @@ class _HistoryPageState extends State<HistoryPage> {
               ],
             ),
           ),
-          // show running task 
+          // show running task
           ValueListenableBuilder(
             valueListenable: todayNotifier,
             builder: (context, value, child) {
@@ -139,6 +139,8 @@ class _HistoryPageState extends State<HistoryPage> {
               child: StreamBuilder(
                 stream: Firestore.instance
                     .collection('users/$useruid/taskEntries')
+                    .where('endTime', isGreaterThanOrEqualTo: fromDate)
+                    .where('endTime', isLessThanOrEqualTo: toDate)
                     .orderBy('endTime', descending: true)
                     .snapshots(),
                 builder: (BuildContext context,
@@ -154,104 +156,90 @@ class _HistoryPageState extends State<HistoryPage> {
                         children: snapshot.data.documents.map(
                           (document) {
                             return Dismissible(
-                                    key: Key(document.documentID),
-                                    background: Container(
-                                      color: Colors.red,
-                                      alignment: Alignment.centerRight,
-                                      child: Icon(Icons.delete),
-                                    ),
-                                    direction: DismissDirection.endToStart,
-                                    onDismissed: (direction) async {
-                                      await Firestore.instance
-                                          .collection(
-                                              'users/$useruid/taskEntries')
-                                          .document(document.documentID)
-                                          .delete();
-                                    },
-                                    child: InkWell(
-                                      onTap: () async {
-                                        List<Task> taskList = [];
-                                        QuerySnapshot snapshot = await Firestore
-                                            .instance
-                                            .collection('users/$useruid/tasks')
-                                            .getDocuments();
-                                        var documents = snapshot.documents;
-                                        for (int i = 0;
-                                            i < documents.length;
-                                            i++) {
-                                          Task task =
-                                              Task.fromJson(documents[i]);
-                                          taskList.add(task);
-                                        }
-                                        print(
-                                            document['belongedTask']['title']);
-                                        TaskEntry taskEntry =
-                                            TaskEntry.fromJson(document);
-                                        print(taskEntry.belongedTask == null);
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                TaskDetailPage(
-                                              taskEntry:
-                                                  TaskEntry.fromJson(document),
-                                              docId: document.documentID,
-                                              taskList: taskList,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      child: Container(
-                                        height: 40,
-                                        child: Row(
-                                          children: <Widget>[
-                                            taskIcon(
-                                                document['belongedTask']
-                                                    ['icon'],
-                                                document['belongedTask']
-                                                    ['colorHex']),
-                                            // text column
-                                            Container(
-                                              width: MediaQuery.of(context)
-                                                      .size
-                                                      .width *
-                                                  0.65,
-                                              padding: const EdgeInsets.only(
-                                                  left: 10),
-                                              child: Column(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: <Widget>[
-                                                  // task title
-                                                  Text(
-                                                    document['belongedTask']
-                                                        ['title'],
-                                                    style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 16),
-                                                  ),
-                                                  Text(
-                                                      "${DateFormat().add_jm().format(document['startTime'].toDate())} - ${DateFormat().add_jm().format(document['endTime'].toDate())}",
-                                                      style: TextStyle(
-                                                          fontSize: 12)),
-                                                ],
-                                              ),
-                                            ),
-                                            // duration display
-                                            Container(
-                                              alignment: Alignment.centerRight,
-                                              child: Text(formatStringDuration(
-                                                  document['duration'])),
-                                            ),
-                                          ],
-                                        ),
+                              key: Key(document.documentID),
+                              background: Container(
+                                color: Colors.red,
+                                alignment: Alignment.centerRight,
+                                child: Icon(Icons.delete),
+                              ),
+                              direction: DismissDirection.endToStart,
+                              onDismissed: (direction) async {
+                                await Firestore.instance
+                                    .collection('users/$useruid/taskEntries')
+                                    .document(document.documentID)
+                                    .delete();
+                              },
+                              child: InkWell(
+                                onTap: () async {
+                                  List<Task> taskList = [];
+                                  QuerySnapshot snapshot = await Firestore
+                                      .instance
+                                      .collection('users/$useruid/tasks')
+                                      .getDocuments();
+                                  var documents = snapshot.documents;
+                                  for (int i = 0; i < documents.length; i++) {
+                                    Task task = Task.fromJson(documents[i]);
+                                    taskList.add(task);
+                                  }
+
+                                  TaskEntry taskEntry =
+                                      TaskEntry.fromJson(document);
+                                  print(taskEntry.belongedTask == null);
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => TaskDetailPage(
+                                        taskEntry: TaskEntry.fromJson(document),
+                                        docId: document.documentID,
+                                        taskList: taskList,
                                       ),
                                     ),
                                   );
-                                // : Container(child: Text("No data"));
+                                },
+                                child: Container(
+                                  height: 40,
+                                  child: Row(
+                                    children: <Widget>[
+                                      taskIcon(document['belongedTask']['icon'],
+                                          document['belongedTask']['colorHex']),
+                                      // text column
+                                      Container(
+                                        width:
+                                            MediaQuery.of(context).size.width *
+                                                0.65,
+                                        padding:
+                                            const EdgeInsets.only(left: 10),
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: <Widget>[
+                                            // task title
+                                            Text(
+                                              document['belongedTask']['title'],
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16),
+                                            ),
+                                            Text(
+                                                "${DateFormat().add_jm().format(document['startTime'].toDate())} - ${DateFormat().add_jm().format(document['endTime'].toDate())}",
+                                                style: TextStyle(fontSize: 12)),
+                                          ],
+                                        ),
+                                      ),
+                                      // duration display
+                                      Container(
+                                        alignment: Alignment.centerRight,
+                                        child: Text(formatStringDuration(
+                                            document['duration'])),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                            // : Container(child: Text("No data"));
                           },
                         ).toList(),
                       );
