@@ -82,6 +82,7 @@ class _HistoryPageState extends State<HistoryPage> {
       ),
       body: Column(
         children: <Widget>[
+          // date select bar
           Container(
             height: 45,
             decoration: BoxDecoration(
@@ -122,6 +123,7 @@ class _HistoryPageState extends State<HistoryPage> {
               ],
             ),
           ),
+          // show running task 
           ValueListenableBuilder(
             valueListenable: todayNotifier,
             builder: (context, value, child) {
@@ -151,13 +153,7 @@ class _HistoryPageState extends State<HistoryPage> {
                       return ListView(
                         children: snapshot.data.documents.map(
                           (document) {
-                            return int.parse(DateFormat('yMMd').format(
-                                            document['endTime'].toDate())) >=
-                                        yMMdFromDate &&
-                                    int.parse(DateFormat('yMMd').format(
-                                            document['endTime'].toDate())) <=
-                                        yMMdToDate
-                                ? Dismissible(
+                            return Dismissible(
                                     key: Key(document.documentID),
                                     background: Container(
                                       color: Colors.red,
@@ -254,8 +250,8 @@ class _HistoryPageState extends State<HistoryPage> {
                                         ),
                                       ),
                                     ),
-                                  )
-                                : Container(child: Text("No data"));
+                                  );
+                                // : Container(child: Text("No data"));
                           },
                         ).toList(),
                       );
