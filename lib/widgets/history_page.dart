@@ -51,7 +51,6 @@ class _HistoryPageState extends State<HistoryPage> {
     yMMdFromDate = int.parse(DateFormat('yMMd').format(fromDate));
     yMMdToDate = int.parse(DateFormat('yMMd').format(toDate));
     yMMdToday = int.parse(DateFormat('yMMd').format(toDate));
-   
   }
 
   void initState() {
@@ -414,7 +413,7 @@ class _HistoryPageState extends State<HistoryPage> {
         if (choseDate != null)
           fromDate =
               DateTime(choseDate.year, choseDate.month, choseDate.day, 0, 0, 1);
-        ;
+
         yMMdFromDate = int.parse(DateFormat('yMMd').format(fromDate));
       });
     } else if (leftOrRight == 'right') {
@@ -808,6 +807,9 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
           DateTime newDate = DateTime(choseDate.year, choseDate.month,
               choseDate.day, startT.hour, startT.minute);
           startTime = newDate;
+          if (endTime != null) {
+            duration = endTime.difference(startTime);
+          }
         }
       });
     } else {
@@ -821,6 +823,7 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
           DateTime newDate = DateTime(choseDate.year, choseDate.month,
               choseDate.day, endT.hour, endT.minute);
           endTime = newDate;
+          duration = endTime.difference(startTime);
         }
       });
     }

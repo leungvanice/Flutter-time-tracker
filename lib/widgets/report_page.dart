@@ -14,12 +14,15 @@ class ReportPage extends StatefulWidget {
 
 class _ReportPageState extends State<ReportPage> {
   String useruid;
+  DateTime lastDay;
   @override
   void initState() {
     super.initState();
+    DateTime now = DateTime.now();
     FirebaseAuth.instance.currentUser().then((onUser) {
       setState(() {
         useruid = onUser.uid;
+        lastDay = now.subtract(Duration(days: 6));
       });
     });
   }
@@ -33,6 +36,7 @@ class _ReportPageState extends State<ReportPage> {
       body: StreamBuilder(
         stream: Firestore.instance
             .collection('users/$useruid/taskEntries')
+            .where('endTime', isGreaterThanOrEqualTo: lastDay)
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.hasData) {
@@ -52,25 +56,14 @@ class _ReportPageState extends State<ReportPage> {
   Widget myBarChart(List<TaskEntry> taskEntries) {
     DateTime smallestDate;
     DateTime biggestDate;
+    int maxHeight;
     List dateList = [];
     List<BarChartGroupData> barChartGroupDataList = [];
     int totalDays;
     // 1. create date list <String>
     // Get smallest date and largest date
-    taskEntries.forEach((entry) {
-      DateTime entryDate =
-          DateTime(entry.endTime.year, entry.endTime.month, entry.endTime.day);
-      if (smallestDate == null || biggestDate == null) {
-        smallestDate = entryDate;
-        biggestDate = entryDate;
-      } else {
-        if (entryDate.isBefore(smallestDate)) {
-          smallestDate = entryDate;
-        } else if (entryDate.isAfter(biggestDate)) {
-          biggestDate = entryDate;
-        }
-      }
-    });
+    biggestDate = DateTime.now();
+    smallestDate = biggestDate.subtract(Duration(days: 6));
     totalDays = biggestDate.difference(smallestDate).inDays + 1;
     // Build the date list
     dateList = List.generate(totalDays, (i) {
@@ -109,7 +102,7 @@ class _ReportPageState extends State<ReportPage> {
         }
       }
     });
-    // print(entryDataList);
+
     // 3. Build List
     int counter = 0;
     entryDataList.forEach((date) {
@@ -130,6 +123,19 @@ class _ReportPageState extends State<ReportPage> {
         return currentHours;
       });
 
+      if (heightList.isNotEmpty) {
+        if (maxHeight == null) {
+          maxHeight = heightList[heightList.length - 1].ceil();
+        } else {
+          if (heightList[heightList.length - 1].ceil() > maxHeight) {
+            // maxHeight = heightList[heightList.length - 1];
+            maxHeight = heightList[heightList.length - 1].ceil();
+
+            print(maxHeight);
+          }
+        }
+      }
+
       // build BarChartRodStackItem list
       List<BarChartRodStackItem> barChartRodStackItemList =
           List.generate(taskList.length, (i) {
@@ -148,6 +154,8 @@ class _ReportPageState extends State<ReportPage> {
           y: totalHours,
           width: 22,
           rodStackItem: barChartRodStackItemList,
+          borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(6), topRight: Radius.circular(6)),
         )
       ];
       barChartGroupDataList.add(BarChartGroupData(
@@ -157,9 +165,67 @@ class _ReportPageState extends State<ReportPage> {
       counter++;
     });
 
-    return Center(
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.9,
+      margin: EdgeInsets.only(left: 20, right: 20, top: 35),
       child: BarChart(
-        BarChartData(barGroups: barChartGroupDataList),
+        BarChartData(
+            alignment: BarChartAlignment.center,
+            maxY: maxHeight.toDouble(),
+            barTouchData: BarTouchData(
+              touchTooltipData: BarTouchTooltipData(
+                  tooltipBgColor: Colors.grey,
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                    DateTime date = DateTime.now().subtract(Duration(days: 6));
+                    DateTime currentDate = date.add(Duration(days: groupIndex));
+                    String stringDate =
+                        DateFormat('dd/MM/yyyy').format(currentDate);
+                    return BarTooltipItem(
+                      stringDate,
+                      TextStyle(),
+                    );
+                  }),
+            ),
+            borderData: FlBorderData(
+                show: true,
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white70
+                      : Colors.grey[800],
+                )),
+            titlesData: FlTitlesData(
+              show: true,
+              bottomTitles: SideTitles(
+                  showTitles: true,
+                  textStyle: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : Colors.grey[800],
+                  ),
+                  getTitles: (double val) {
+                    String dateText = dateList[val.toInt()];
+                    List ddmmyy = dateText.split('/');
+                    DateTime date = DateTime(int.parse(ddmmyy[2]),
+                        int.parse(ddmmyy[1]), int.parse(ddmmyy[0]));
+                    return DateFormat('EE').format(date);
+                  }),
+              leftTitles: SideTitles(
+                  showTitles: true,
+                  textStyle: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : Colors.grey[800],
+                  ),
+                  getTitles: (double val) {
+                    return val.toString();
+                  }),
+              rightTitles: SideTitles(
+                  showTitles: true,
+                  getTitles: (double val) {
+                    return '';
+                  }),
+            ),
+            barGroups: barChartGroupDataList),
       ),
     );
   }
