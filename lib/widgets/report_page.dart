@@ -15,6 +15,7 @@ class ReportPage extends StatefulWidget {
 class _ReportPageState extends State<ReportPage> {
   String useruid;
   DateTime lastDay;
+  bool darkTheme;
   @override
   void initState() {
     super.initState();
@@ -110,7 +111,6 @@ class _ReportPageState extends State<ReportPage> {
       Map entryData = date.values.toList()[0];
       List taskList = entryData.keys.toList();
       List entryDetail = entryData.values.toList();
-      // print(entryDetail);
 
       // get total hours (y)
       entryDetail.forEach((list) {
@@ -130,8 +130,6 @@ class _ReportPageState extends State<ReportPage> {
           if (heightList[heightList.length - 1].ceil() > maxHeight) {
             // maxHeight = heightList[heightList.length - 1];
             maxHeight = heightList[heightList.length - 1].ceil();
-
-            print(maxHeight);
           }
         }
       }
@@ -152,7 +150,7 @@ class _ReportPageState extends State<ReportPage> {
       List<BarChartRodData> barChartRodData = [
         BarChartRodData(
           y: totalHours,
-          width: 22,
+          width: 8,
           rodStackItem: barChartRodStackItemList,
           borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(6), topRight: Radius.circular(6)),
@@ -167,66 +165,113 @@ class _ReportPageState extends State<ReportPage> {
 
     return Container(
       width: MediaQuery.of(context).size.width * 0.9,
+      height: MediaQuery.of(context).size.height * 0.3,
       margin: EdgeInsets.only(left: 20, right: 20, top: 35),
-      child: BarChart(
-        BarChartData(
-            alignment: BarChartAlignment.center,
-            maxY: maxHeight.toDouble(),
-            barTouchData: BarTouchData(
-              touchTooltipData: BarTouchTooltipData(
-                  tooltipBgColor: Colors.grey,
-                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                    DateTime date = DateTime.now().subtract(Duration(days: 6));
-                    DateTime currentDate = date.add(Duration(days: groupIndex));
-                    String stringDate =
-                        DateFormat('dd/MM/yyyy').format(currentDate);
-                    return BarTooltipItem(
-                      stringDate,
-                      TextStyle(),
+      child: Card(
+        child: Container(
+          padding: EdgeInsets.all(20),
+          child: BarChart(
+            BarChartData(
+                alignment: BarChartAlignment.center,
+                groupsSpace: 30,
+                maxY: maxHeight.toDouble(),
+                barTouchData: BarTouchData(
+                  touchTooltipData: BarTouchTooltipData(
+                      tooltipBgColor: Colors.grey,
+                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                        DateTime date =
+                            DateTime.now().subtract(Duration(days: 6));
+                        DateTime currentDate =
+                            date.add(Duration(days: groupIndex));
+                        String stringDate =
+                            DateFormat('dd/MM/yyyy').format(currentDate);
+                        int dateIndexInList = dateList.indexOf(stringDate);
+                        String displayDate =
+                            DateFormat('MMMM d yyyy').format(currentDate);
+
+                        Map dateMap = entryDataList[dateIndexInList];
+                        Map taskMap = dateMap.values.toList()[0];
+                        String hour;
+                        String minutes;
+                        double totalHours = 0;
+                        taskMap.values.toList().forEach((detail) {
+                          totalHours += detail[0];
+                        });
+                        if (isInteger(totalHours)) {
+                          hour = totalHours.toString().split('.')[0];
+                          print(totalHours);
+                        } else {
+                          String round2decimal = totalHours.toStringAsFixed(2);
+                          hour = round2decimal.split('.')[0];
+                          String decimals = round2decimal.split('.')[1];
+                          double mins = int.parse(decimals) / 100 * 60;
+                          minutes = mins.toString().split('.')[0];
+                        }
+
+                        // print(duration.inHours);
+                        return BarTooltipItem(
+                          minutes == null
+                              ? '$displayDate \n $hour hrs'
+                              : '$displayDate \n $hour hrs $minutes mins',
+                          TextStyle(),
+                        );
+                      }),
+                ),
+                borderData: FlBorderData(
+                  show: false,
+                  border: Border.all(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : Colors.grey[800],
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  checkToShowHorizontalLine: (value) => value % 1 == 0,
+                  getDrawingHorizontalLine: (value) {
+                    if (value == 0) {
+                      return const FlLine(
+                          color: Color(0xff363753), strokeWidth: 3);
+                    }
+                    return const FlLine(
+                      color: Colors.white10,
+                      strokeWidth: 0.8,
                     );
-                  }),
-            ),
-            borderData: FlBorderData(
-                show: true,
-                border: Border.all(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white70
-                      : Colors.grey[800],
-                )),
-            titlesData: FlTitlesData(
-              show: true,
-              bottomTitles: SideTitles(
-                  showTitles: true,
-                  textStyle: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white70
-                        : Colors.grey[800],
-                  ),
-                  getTitles: (double val) {
-                    String dateText = dateList[val.toInt()];
-                    List ddmmyy = dateText.split('/');
-                    DateTime date = DateTime(int.parse(ddmmyy[2]),
-                        int.parse(ddmmyy[1]), int.parse(ddmmyy[0]));
-                    return DateFormat('EE').format(date);
-                  }),
-              leftTitles: SideTitles(
-                  showTitles: true,
-                  textStyle: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white70
-                        : Colors.grey[800],
-                  ),
-                  getTitles: (double val) {
-                    return val.toString();
-                  }),
-              rightTitles: SideTitles(
-                  showTitles: true,
-                  getTitles: (double val) {
-                    return '';
-                  }),
-            ),
-            barGroups: barChartGroupDataList),
+                  },
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: SideTitles(
+                      showTitles: true,
+                      textStyle: TextStyle(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white70
+                            : Colors.grey[800],
+                      ),
+                      getTitles: (double val) {
+                        String dateText = dateList[val.toInt()];
+                        List ddmmyy = dateText.split('/');
+                        DateTime date = DateTime(int.parse(ddmmyy[2]),
+                            int.parse(ddmmyy[1]), int.parse(ddmmyy[0]));
+                        return DateFormat('EEE').format(date);
+                      }),
+                  leftTitles: SideTitles(
+                      showTitles: true,
+                      textStyle: TextStyle(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white70
+                            : Colors.grey[800],
+                      ),
+                      getTitles: (double val) {
+                        return val.toInt().toString();
+                      }),
+                ),
+                barGroups: barChartGroupDataList),
+          ),
+        ),
       ),
     );
   }
+
+  bool isInteger(num value) => value is int || value == value.roundToDouble();
 }
