@@ -1,10 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
 import '../models/taskEntry.dart';
+
 import 'package:flutter/material.dart';
 
 class ReportPage extends StatefulWidget {
@@ -30,23 +30,19 @@ class _ReportPageState extends State<ReportPage> {
       appBar: AppBar(
         title: Text("Report"),
       ),
-      body: StreamBuilder<QuerySnapshot>(
+      body: StreamBuilder(
         stream: Firestore.instance
             .collection('users/$useruid/taskEntries')
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (snapshot.hasError) {
-            return Text("Error: ${snapshot.error}");
-          }
-          switch (snapshot.connectionState) {
-            case ConnectionState.waiting:
-              return Text("Loading");
-            default:
-              List<TaskEntry> taskEntries = [];
-              snapshot.data.documents.forEach((doc) {
-                taskEntries.add(TaskEntry.fromJson(doc));
-              });
-              return myBarChart(taskEntries);
+          if (snapshot.hasData) {
+            List<TaskEntry> taskEntries = [];
+            snapshot.data.documents.forEach((doc) {
+              taskEntries.add(TaskEntry.fromJson(doc));
+            });
+            return myBarChart(taskEntries);
+          } else {
+            return Container();
           }
         },
       ),
@@ -54,116 +50,117 @@ class _ReportPageState extends State<ReportPage> {
   }
 
   Widget myBarChart(List<TaskEntry> taskEntries) {
-    int yMMdSmallestDate;
-    int yMMdBiggestDate;
-    List<Map> dateRangeList;
+    DateTime smallestDate;
+    DateTime biggestDate;
+    List dateList = [];
     List<BarChartGroupData> barChartGroupDataList = [];
     int totalDays;
-    // set smallest date and biggest date
+    // 1. create date list <String>
+    // Get smallest date and largest date
     taskEntries.forEach((entry) {
-      int yMMdEndTime = int.parse(DateFormat('yMMd').format(entry.endTime));
-      if (yMMdSmallestDate == null || yMMdBiggestDate == null) {
-        yMMdSmallestDate = yMMdEndTime;
-        yMMdBiggestDate = yMMdEndTime;
+      DateTime entryDate =
+          DateTime(entry.endTime.year, entry.endTime.month, entry.endTime.day);
+      if (smallestDate == null || biggestDate == null) {
+        smallestDate = entryDate;
+        biggestDate = entryDate;
       } else {
-        if (yMMdEndTime < yMMdSmallestDate) {
-          yMMdSmallestDate = yMMdEndTime;
-        } else if (yMMdEndTime > yMMdBiggestDate) {
-          yMMdBiggestDate = yMMdEndTime;
+        if (entryDate.isBefore(smallestDate)) {
+          smallestDate = entryDate;
+        } else if (entryDate.isAfter(biggestDate)) {
+          biggestDate = entryDate;
         }
       }
     });
-
-    // create date list (bar chart bottom titles)
-    totalDays = yMMdBiggestDate - yMMdSmallestDate + 1;
-    dateRangeList = List.generate(totalDays, (i) {
-      DateTime smallestDate = DateTime.parse(yMMdSmallestDate.toString());
+    totalDays = biggestDate.difference(smallestDate).inDays + 1;
+    // Build the date list
+    dateList = List.generate(totalDays, (i) {
       DateTime date = smallestDate.add(Duration(days: i));
       String formattedDate = DateFormat('dd/MM/yyyy').format(date);
-      Map map = {formattedDate: []};
+      return formattedDate;
+    });
+
+    List entryDataList = List.generate(dateList.length, (i) {
+      Map map = {dateList[i]: {}};
       return map;
     });
 
-    // separate task entry according to date
-    for (var map in dateRangeList) {
-      for (var date in map.keys) {
-        for (TaskEntry entry in taskEntries) {
-          String formattedDate = DateFormat('dd/MM/yyyy').format(entry.endTime);
-          if (formattedDate == date) {
-            for (var list in map.values) {
-              list.add(entry);
-            }
-          }
+    // 2. Organize entry's data
+    taskEntries.forEach((entry) {
+      String taskName = entry.belongedTask.title;
+      double hours = entry.duration.inMinutes / 60;
+      // get the map in entryDataList according to entry's date
+      String entryDate = DateFormat('dd/MM/yyyy').format(entry.endTime);
+      int dateIndexInList = dateList.indexOf(entryDate);
+      Map dateMap = entryDataList[dateIndexInList];
+      Map entriesMap = dateMap.values.toList()[0];
+      String entryColor = entry.belongedTask.colorHex;
+      String valueString = entryColor.split('(0x')[1].split(')')[0];
+      int value = int.parse(valueString, radix: 16);
+
+      if (entriesMap.isEmpty) {
+        entriesMap[taskName] = [hours, value];
+      } else {
+        if (!entriesMap.keys.toList().contains(taskName)) {
+          entriesMap[taskName] = [hours, value];
+        } else {
+          double oldHours = entriesMap[taskName][0];
+          double totalHours = oldHours + hours;
+          entriesMap[taskName] = [totalHours, value];
         }
       }
-    }
-
-    // add up task entries belonged to same task in single day
-    int count = 0;
-    dateRangeList.forEach((map) {
-      List keyList = map.keys.toList();
-      for (List entryList in map.values) {
-        List taskList = [];
-        List toAdd = [];
-        List addedTaskNameList = [];
-
-        entryList.forEach((entry) {
-          String taskName = entry.belongedTask.title;
-          double hours = entry.duration.inMinutes / 60;
-          Map taskMap = {taskName: hours};
-          if (taskList.isEmpty) {
-            taskList.add(taskMap);
-          } else {
-            for (var map in taskList) {
-              for (var existedTask in map.keys) {
-                if (taskName != existedTask &&
-                    !addedTaskNameList.contains(taskName)) {
-                  toAdd.add(taskMap);
-                  addedTaskNameList.add(taskName);
-                } else {
-                  for (double oldHour in map.values) {
-                    double newHour = oldHour + hours;
-                    if (taskName == existedTask) {
-                      map[existedTask] = newHour;
-                    } else if (addedTaskNameList.contains(taskName)) {
-                      toAdd.forEach((map) {
-                        for (var addedTask in map.keys) {
-                          for (double oldHour in map.values) {
-                            double newHour = oldHour + hours;
-                            map[addedTask] = newHour;
-                          }
-                        }
-                      });
-                    }
-                  }
-                }
-              }
-            }
-          }
-        });
-        // combine the lists
-        taskList.add(toAdd);
-        dateRangeList[count] = {keyList[count]: taskList};
-      }
     });
-    print(dateRangeList);
+    // print(entryDataList);
+    // 3. Build List
+    int counter = 0;
+    entryDataList.forEach((date) {
+      double totalHours = 0;
+      Map entryData = date.values.toList()[0];
+      List taskList = entryData.keys.toList();
+      List entryDetail = entryData.values.toList();
+      // print(entryDetail);
 
-    // build barChartGroupDataList
-    // barChartGroupDataList = List.generate(dateRangeList.length, (i) {
-    //   //  create BarChartRodStackItem List > pass to rodStackItem parameter
-    //   List<BarChartRodStackItem> stackDataList = [];
-    //   for (List entryList in dateRangeList[i].values) {
-    //     // BarChartRodStackItem item = BarChartRodStackItem();
+      // get total hours (y)
+      entryDetail.forEach((list) {
+        totalHours += list[0];
+      });
+      // build height List
+      double currentHours = 0;
+      List heightList = List.generate(entryDetail.length, (i) {
+        currentHours += entryDetail[i][0];
+        return currentHours;
+      });
 
-    //   }
+      // build BarChartRodStackItem list
+      List<BarChartRodStackItem> barChartRodStackItemList =
+          List.generate(taskList.length, (i) {
+        Color itemColor = Color(entryDetail[i][1]);
+        // from Y
+        if (i == 0) {
+          return BarChartRodStackItem(0, heightList[i], itemColor);
+        } else {
+          return BarChartRodStackItem(
+              heightList[i - 1], heightList[i], itemColor);
+        }
+      });
+      // build BarChartRodData
+      List<BarChartRodData> barChartRodData = [
+        BarChartRodData(
+          y: totalHours,
+          width: 22,
+          rodStackItem: barChartRodStackItemList,
+        )
+      ];
+      barChartGroupDataList.add(BarChartGroupData(
+        x: counter,
+        barRods: barChartRodData,
+      ));
+      counter++;
+    });
 
-    //   return BarChartGroupData(
-    //     x: i,
-    //     // barRods: dateRangeList[i].
-    //   );
-    // });
-    // print(dateRangeList[0].values);
-
-    return Container();
+    return Center(
+      child: BarChart(
+        BarChartData(barGroups: barChartGroupDataList),
+      ),
+    );
   }
 }

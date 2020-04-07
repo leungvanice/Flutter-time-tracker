@@ -29,23 +29,29 @@ class _HistoryPageState extends State<HistoryPage> {
   ValueNotifier todayNotifier = ValueNotifier('true');
 
   getUser() {
-    FirebaseAuth.instance.currentUser().then((user) {
+    FirebaseAuth.instance.currentUser().then((onUser) {
       setState(() {
-        useruid = user.uid;
+        useruid = onUser.uid;
       });
     });
   }
 
   setDate() async {
-    toDate = DateTime.now();
+    DateTime now = DateTime.now();
+    toDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
     fromDate = DateTime.now();
 
     final prefs = await SharedPreferences.getInstance();
-    fromDate = toDate.subtract(Duration(days: prefs.getInt('queryRange') ?? 0));
+    fromDate = toDate.subtract(Duration(
+        days: prefs.getInt('queryRange') ?? 0,
+        hours: 23,
+        minutes: 59,
+        seconds: 58));
 
     yMMdFromDate = int.parse(DateFormat('yMMd').format(fromDate));
     yMMdToDate = int.parse(DateFormat('yMMd').format(toDate));
     yMMdToday = int.parse(DateFormat('yMMd').format(toDate));
+   
   }
 
   void initState() {
@@ -405,17 +411,22 @@ class _HistoryPageState extends State<HistoryPage> {
           firstDate: DateTime(2020),
           lastDate: toDate);
       setState(() {
-        if (choseDate != null) fromDate = choseDate;
+        if (choseDate != null)
+          fromDate =
+              DateTime(choseDate.year, choseDate.month, choseDate.day, 0, 0, 1);
+        ;
         yMMdFromDate = int.parse(DateFormat('yMMd').format(fromDate));
       });
     } else if (leftOrRight == 'right') {
       DateTime choseDate = await showDatePicker(
           context: context,
-          initialDate: toDate,
+          initialDate: DateTime(toDate.year, toDate.month, toDate.day),
           firstDate: fromDate,
           lastDate: DateTime.now());
       setState(() {
-        if (choseDate != null) toDate = choseDate;
+        if (choseDate != null)
+          toDate = DateTime(
+              choseDate.year, choseDate.month, choseDate.day, 23, 59, 59);
         yMMdToDate = int.parse(DateFormat('yMMd').format(toDate));
       });
     }
@@ -852,5 +863,3 @@ class _CreateTaskEntryState extends State<CreateTaskEntry> {
     }
   }
 }
-
-
