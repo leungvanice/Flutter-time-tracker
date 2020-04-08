@@ -16,14 +16,17 @@ class _ReportPageState extends State<ReportPage> {
   String useruid;
   DateTime lastDay;
   bool darkTheme;
+  static DateTime now = DateTime.now();
+  DateTime today = DateTime(now.year, now.month, now.day, 23, 59, 59);
   @override
   void initState() {
     super.initState();
     DateTime now = DateTime.now();
+    DateTime today = DateTime(now.year, now.month, now.day);
     FirebaseAuth.instance.currentUser().then((onUser) {
       setState(() {
         useruid = onUser.uid;
-        lastDay = now.subtract(Duration(days: 6));
+        lastDay = today.subtract(Duration(days: 6));
       });
     });
   }
@@ -38,6 +41,7 @@ class _ReportPageState extends State<ReportPage> {
         stream: Firestore.instance
             .collection('users/$useruid/taskEntries')
             .where('endTime', isGreaterThanOrEqualTo: lastDay)
+            .where('endTime', isLessThanOrEqualTo: today)
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.hasData) {
@@ -45,11 +49,94 @@ class _ReportPageState extends State<ReportPage> {
             snapshot.data.documents.forEach((doc) {
               taskEntries.add(TaskEntry.fromJson(doc));
             });
-            return myBarChart(taskEntries);
+            return Column(
+              children: <Widget>[
+                myPieChart(taskEntries),
+                myBarChart(taskEntries),
+              ],
+            );
           } else {
             return Container();
           }
         },
+      ),
+    );
+  }
+
+  Widget myPieChart(List<TaskEntry> taskEntries) {
+    List<PieChartSectionData> pieChartSectionDataList = [];
+    Map taskColorMap = {};
+    Map taskDetailMap = {};
+    double totalHours = 0;
+    double radius = 100;
+
+    createColorMap(TaskEntry entry) {
+      String entryColor = entry.belongedTask.colorHex;
+      String valueString = entryColor.split('(0x')[1].split(')')[0];
+      int colorVal = int.parse(valueString, radix: 16);
+      Color color = Color(colorVal);
+      String taskName = entry.belongedTask.title;
+      if (!taskColorMap.keys.toList().contains(taskName)) {
+        taskColorMap[taskName] = color;
+      }
+    }
+
+    createDetailMap(TaskEntry entry) {
+      String taskName = entry.belongedTask.title;
+      double hours = entry.duration.inMinutes / 60;
+      if (taskDetailMap.keys.toList().contains(taskName)) {
+        double oldHours = taskDetailMap[taskName];
+        double newHours = oldHours + hours;
+        taskDetailMap[taskName] = double.parse(newHours.toStringAsFixed(2));
+      } else {
+        taskDetailMap[taskName] = hours;
+      }
+    }
+
+    addTotalHour(double hours) {
+      if (isInteger(hours)) {
+        totalHours += hours;
+      } else {
+        totalHours += double.parse(hours.toStringAsFixed(2));
+      }
+    }
+
+    taskEntries.forEach((entry) {
+      createColorMap(entry);
+      createDetailMap(entry);
+      addTotalHour(entry.duration.inMinutes / 60);
+    });
+
+    taskDetailMap.keys.toList().forEach((task) {
+      PieChartSectionData data = PieChartSectionData(
+        color: taskColorMap[task],
+        radius: radius,
+        title:
+            "${(taskDetailMap[task] / totalHours * 100).toStringAsFixed(1)}%",
+        value: taskDetailMap[task] / totalHours * 100,
+        titleStyle: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+      pieChartSectionDataList.add(data);
+    });
+
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.9,
+      height: MediaQuery.of(context).size.height * 0.3,
+      margin: EdgeInsets.only(left: 20, right: 20, top: 35),
+      child: Card(
+        child: PieChart(
+          PieChartData(
+            borderData: FlBorderData(
+              show: false,
+            ),
+            sectionsSpace: 8,
+            centerSpaceRadius: 0,
+            sections: pieChartSectionDataList,
+          ),
+        ),
       ),
     );
   }
@@ -272,6 +359,7 @@ class _ReportPageState extends State<ReportPage> {
       ),
     );
   }
+  
 
   bool isInteger(num value) => value is int || value == value.roundToDouble();
 }
