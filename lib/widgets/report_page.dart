@@ -1,3 +1,5 @@
+import 'package:flutter_swiper/flutter_swiper.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -18,6 +20,7 @@ class _ReportPageState extends State<ReportPage> {
   bool darkTheme;
   static DateTime now = DateTime.now();
   DateTime today = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
   @override
   void initState() {
     super.initState();
@@ -49,16 +52,92 @@ class _ReportPageState extends State<ReportPage> {
             snapshot.data.documents.forEach((doc) {
               taskEntries.add(TaskEntry.fromJson(doc));
             });
+            List chartList = [myPieChart(taskEntries), myBarChart(taskEntries)];
+
             return Column(
               children: <Widget>[
-                myPieChart(taskEntries),
-                myBarChart(taskEntries),
+                SizedBox(
+                  child: Swiper(
+                    itemCount: chartList.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      return chartList[index];
+                    },
+                  ),
+                  height: MediaQuery.of(context).size.height * 0.35,
+                ),
+                entryDetail(taskEntries)
               ],
             );
           } else {
             return Container();
           }
         },
+      ),
+    );
+  }
+
+  Widget entryDetail(List<TaskEntry> taskEntries) {
+    Map taskDetailMap = {};
+    Map taskColorMap = {};
+    createColorMap(TaskEntry entry) {
+      String entryColor = entry.belongedTask.colorHex;
+      String valueString = entryColor.split('(0x')[1].split(')')[0];
+      int colorVal = int.parse(valueString, radix: 16);
+      Color color = Color(colorVal);
+      String taskName = entry.belongedTask.title;
+      if (!taskColorMap.keys.toList().contains(taskName)) {
+        taskColorMap[taskName] = color;
+      }
+    }
+
+    taskEntries.forEach((entry) {
+      String taskName = entry.belongedTask.title;
+      double hours =
+          double.parse((entry.duration.inMinutes / 60).toStringAsFixed(3));
+      if (!taskDetailMap.containsKey(taskName)) {
+        taskDetailMap[taskName] = hours;
+      } else {
+        double oldHours = taskDetailMap[taskName];
+        double newHours = oldHours + hours;
+        taskDetailMap[taskName] = newHours;
+      }
+      createColorMap(entry);
+    });
+    taskDetailMap.keys.toList().forEach((taskName) {
+      double hours = taskDetailMap[taskName];
+      if (isInteger(hours)) {
+        taskDetailMap[taskName] = '${hours.toString().split('.')[0]} hours';
+      } else {
+        String hrs = hours.toString().split('.')[0];
+        double mins = (hours - double.parse(hrs)) * 60;
+        taskDetailMap[taskName] =
+            '$hrs hours ${mins.toString().split('.')[0]} minutes';
+      }
+    });
+    return Expanded(
+      child: Container(
+        margin: EdgeInsets.all(30),
+        child: ListView(
+          children: taskDetailMap.keys.toList().map((task) {
+            return Container(
+              margin: EdgeInsets.all(5),
+              child: Row(
+                children: <Widget>[
+                  Container(
+                    height: 8,
+                    color: taskColorMap[task],
+                    width: 5,
+                  ),
+                  SizedBox(
+                    width: 25,
+                  ),
+                  Text("$task: \t${taskDetailMap[task]}",
+                      style: TextStyle(fontSize: 15)),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -359,7 +438,6 @@ class _ReportPageState extends State<ReportPage> {
       ),
     );
   }
-  
 
   bool isInteger(num value) => value is int || value == value.roundToDouble();
 }
