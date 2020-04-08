@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 import 'package:flutter_swiper/flutter_swiper.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -6,8 +8,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 
 import '../models/taskEntry.dart';
-
-import 'package:flutter/material.dart';
 
 class ReportPage extends StatefulWidget {
   @override
@@ -47,27 +47,34 @@ class _ReportPageState extends State<ReportPage> {
             .where('endTime', isLessThanOrEqualTo: today)
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+          if (snapshot.hasError) {
+            return Text("Error: ${snapshot.error}");
+          }
           if (snapshot.hasData) {
             List<TaskEntry> taskEntries = [];
             snapshot.data.documents.forEach((doc) {
               taskEntries.add(TaskEntry.fromJson(doc));
             });
-            List chartList = [myPieChart(taskEntries), myBarChart(taskEntries)];
+            List chartList = taskEntries.isNotEmpty
+                ? [myPieChart(taskEntries), myBarChart(taskEntries)]
+                : [];
 
-            return Column(
-              children: <Widget>[
-                SizedBox(
-                  child: Swiper(
-                    itemCount: chartList.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return chartList[index];
-                    },
-                  ),
-                  height: MediaQuery.of(context).size.height * 0.35,
-                ),
-                entryDetail(taskEntries)
-              ],
-            );
+            return taskEntries.isNotEmpty
+                ? Column(
+                    children: <Widget>[
+                      SizedBox(
+                        child: Swiper(
+                          itemCount: chartList.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            return chartList[index];
+                          },
+                        ),
+                        height: MediaQuery.of(context).size.height * 0.35,
+                      ),
+                      entryDetail(taskEntries)
+                    ],
+                  )
+                : Container();
           } else {
             return Container();
           }
