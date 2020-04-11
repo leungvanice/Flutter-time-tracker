@@ -1,6 +1,7 @@
 import './first_page.dart';
 import './history_page.dart';
 import './calendar_page.dart';
+import './report_page.dart';
 
 import 'package:flutter/material.dart';
 
@@ -15,7 +16,7 @@ class _RootPageState extends State<RootPage> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         body: TabBarView(
           children: <Widget>[
@@ -24,6 +25,7 @@ class _RootPageState extends State<RootPage> {
             ),
             CalendarPage(),
             HistoryPage(),
+            ReportPage(),
           ],
         ),
         bottomNavigationBar: TabBar(
@@ -36,6 +38,9 @@ class _RootPageState extends State<RootPage> {
             ),
             Tab(
               icon: Icon(Icons.assignment),
+            ),
+            Tab(
+              icon: Icon(Icons.pie_chart),
             ),
           ],
           labelColor: Colors.yellow,
