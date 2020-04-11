@@ -12,7 +12,7 @@ import 'package:time_tracker/sign_in.dart';
 
 import '../models/task.dart';
 import '../models/taskEntry.dart';
-import '../database_helper.dart';
+
 
 import 'package:flutter/material.dart';
 
@@ -611,9 +611,7 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
 
     print("Inserted to firebase: $ref");
 
-    TaskDatabaseHelper helper = TaskDatabaseHelper.instance;
-    int id = await helper.insert(newTask);
-    print("Inserted to local storage: $id");
+
   }
 
   Future notCompletedWarning() async {

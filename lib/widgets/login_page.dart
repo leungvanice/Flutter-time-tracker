@@ -1,10 +1,7 @@
-// import './root_page.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:time_tracker/database_helper.dart';
+
 import 'package:time_tracker/models/task.dart';
-import 'package:time_tracker/models/taskEntry.dart';
 
 import '../sign_in.dart';
 
@@ -49,46 +46,9 @@ class _LoginPageState extends State<LoginPage> {
       onPressed: () async {
         await signInWithGoogle().whenComplete(() async {
           String uid;
-          TaskDatabaseHelper taskhelper = TaskDatabaseHelper.instance;
-          TaskDatabaseHelper entryhelper = TaskDatabaseHelper.instance;
-
-          taskhelper.deleteAll();
-          entryhelper.deleteAll();
 
           // sync user tasks into db
           FirebaseAuth.instance.currentUser().then((user) {
-            uid = user.uid;
-            print(uid);
-            Firestore.instance
-                .collection('users/$uid/tasks')
-                .orderBy('title')
-                .snapshots()
-                .listen((data) {
-              data.documents.forEach((doc) {
-                Task task = Task.fromJson(doc);
-                TaskDatabaseHelper helper = TaskDatabaseHelper.instance;
-                helper.insert(task);
-              });
-            });
-            Firestore.instance
-                .collection('users/$uid/taskEntries')
-                .orderBy('endTime')
-                .snapshots()
-                .listen((data) {
-              data.documents.forEach((doc) {
-                TaskEntry taskEntry = TaskEntry(
-                  belongedTaskName: doc['belongedTask']['title'],
-                  duration: parseDuration(doc['duration']),
-                  startTime: doc['startTime'].toDate(),
-                  endTime: doc['endTime'].toDate(),
-                  note: doc['note'] ?? '',
-                );
-
-                TaskEntryDatabaseHelper helper =
-                    TaskEntryDatabaseHelper.instance;
-                helper.insert(taskEntry);
-              });
-            });
             widget.authNotifier.value = uid;
             saveUid(uid);
           });
